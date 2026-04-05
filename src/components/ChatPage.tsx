@@ -7,13 +7,15 @@ import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
 import { TypingIndicator } from './TypingIndicator'
 import { ModelSelector } from './ModelSelector'
+import { SkillSelector } from './SkillSelector'
 import type { Message, ChatSession } from '@/lib/types'
+import { getSkillById } from '@/lib/skills'
 
 const SUGGESTIONS = [
-  { icon: Code2,     text: 'Kepriwe carane gawe REST API nganggo Next.js?',       label: 'Coding' },
-  { icon: BookOpen,  text: 'Jelasna machine learning nganggo basa sing gampang!', label: 'Belajar' },
-  { icon: ChefHat,   text: 'Tulung gaweake resep masakan khas Banyumas',          label: 'Resep' },
-  { icon: Lightbulb, text: 'Apa bedane Python karo JavaScript kanggo pemula?',    label: 'Tips' },
+  { icon: Code2,     text: 'Kepriwe carane gawe REST API nganggo Next.js?',       label: 'Coding',   skillId: 'code' },
+  { icon: BookOpen,  text: 'Jelasna machine learning nganggo basa sing gampang!', label: 'Belajar',  skillId: 'explain' },
+  { icon: ChefHat,   text: 'Tulung gaweake resep masakan khas Banyumas',          label: 'Resep',    skillId: 'general' },
+  { icon: Lightbulb, text: 'Apa bedane Python karo JavaScript kanggo pemula?',    label: 'Tips',     skillId: 'explain' },
 ]
 
 function generateId() {
@@ -31,6 +33,7 @@ export function ChatPage() {
   const [streamingContent, setStreamingContent] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [model, setModel] = useState('claude-3-5-sonnet-20241022')
+  const [skillId, setSkillId] = useState('general')
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -89,7 +92,7 @@ export function ChatPage() {
       sessionId = s.id
     }
 
-    const userMsg: Message = { id: generateId(), role: 'user', content, createdAt: new Date() }
+    const userMsg: Message = { id: generateId(), role: 'user', content, createdAt: new Date(), skillId }
 
     setSessions((prev) => prev.map((s) => s.id === sessionId ? {
       ...s,
@@ -112,7 +115,7 @@ export function ChatPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history, model }),
+        body: JSON.stringify({ messages: history, model, skillId }),
         signal: controller.signal,
       })
 
@@ -142,7 +145,7 @@ export function ChatPage() {
       }
 
       const assistantMsg: Message = {
-        id: generateId(), role: 'assistant', content: fullText, createdAt: new Date(),
+        id: generateId(), role: 'assistant', content: fullText, createdAt: new Date(), skillId,
       }
       setSessions((prev) => prev.map((s) => s.id === sessionId
         ? { ...s, messages: [...s.messages, assistantMsg], updatedAt: new Date() }
@@ -211,6 +214,7 @@ export function ChatPage() {
             )}
           </div>
           <ModelSelector value={model} onChange={setModel} />
+          <SkillSelector value={skillId} onChange={setSkillId} />
         </header>
 
         {/* Messages */}
@@ -241,7 +245,7 @@ export function ChatPage() {
                   return (
                     <button
                       key={s.text}
-                      onClick={() => sendMessage(s.text)}
+                      onClick={() => { setSkillId(s.skillId); sendMessage(s.text) }}
                       className="group flex items-start gap-3 p-4 rounded-2xl text-left transition-all duration-200
                         bg-[#16161f] border border-[#2a2a3a] hover:border-[#7c6af7]/40 hover:bg-[#1a1a28]
                         hover:shadow-glow-sm"
@@ -281,6 +285,7 @@ export function ChatPage() {
           onSend={sendMessage}
           isLoading={isLoading}
           onStop={() => abortRef.current?.abort()}
+          placeholder={getSkillById(skillId).placeholder}
         />
       </div>
     </div>

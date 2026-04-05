@@ -8,9 +8,10 @@ interface ChatInputProps {
   onSend: (message: string) => void
   isLoading: boolean
   onStop: () => void
+  placeholder?: string
 }
 
-export function ChatInput({ onSend, isLoading, onStop }: ChatInputProps) {
+export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Takon apa bae karo Ngapak AI...' }: ChatInputProps) {
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -51,7 +52,7 @@ export function ChatInput({ onSend, isLoading, onStop }: ChatInputProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Takon apa bae karo Ngapak AI..."
+            placeholder={placeholder}
             rows={1}
             className="w-full bg-transparent text-[#f0f0f8] placeholder-[#5a5a72] text-sm leading-relaxed
               resize-none outline-none px-4 pt-3.5 pb-12 min-h-[52px] max-h-[180px]"

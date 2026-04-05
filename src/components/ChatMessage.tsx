@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import type { Message } from '@/lib/types'
 import { Copy, Check, User, Sparkles } from 'lucide-react'
 import { useState } from 'react'
+import { getSkillById } from '@/lib/skills'
 
 interface ChatMessageProps {
   message: Message
@@ -15,6 +16,7 @@ interface ChatMessageProps {
 export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
+  const skill = message.skillId ? getSkillById(message.skillId) : null
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content)
@@ -45,9 +47,16 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
 
       {/* Content */}
       <div className={cn('flex flex-col gap-1 max-w-[80%]', isUser && 'items-end')}>
-        <span className="text-[11px] font-medium text-[#5a5a72] px-1">
-          {isUser ? 'Kowe' : 'Ngapak AI'}
-        </span>
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-[11px] font-medium text-[#5a5a72]">
+            {isUser ? 'Kowe' : 'Ngapak AI'}
+          </span>
+          {skill && skill.id !== 'general' && (
+            <span className={cn('text-[9px] px-1.5 py-0.5 rounded-md border font-medium', skill.color)}>
+              {skill.emoji} {skill.name}
+            </span>
+          )}
+        </div>
 
         <div className={cn(
           'relative rounded-2xl px-4 py-3',
