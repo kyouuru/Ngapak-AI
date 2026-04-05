@@ -1,24 +1,23 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Send, Square } from 'lucide-react'
+import { ArrowUp, Square, Paperclip, Globe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ChatInputProps {
   onSend: (message: string) => void
   isLoading: boolean
   onStop: () => void
-  disabled?: boolean
 }
 
-export function ChatInput({ onSend, isLoading, onStop, disabled }: ChatInputProps) {
+export function ChatInput({ onSend, isLoading, onStop }: ChatInputProps) {
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`
     }
   }, [input])
 
@@ -27,9 +26,7 @@ export function ChatInput({ onSend, isLoading, onStop, disabled }: ChatInputProp
     if (!trimmed || isLoading) return
     onSend(trimmed)
     setInput('')
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-    }
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -39,36 +36,61 @@ export function ChatInput({ onSend, isLoading, onStop, disabled }: ChatInputProp
     }
   }
 
+  const canSend = input.trim().length > 0 && !isLoading
+
   return (
-    <div className="border-t border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm p-4">
+    <div className="px-4 pb-4 pt-2">
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-end gap-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-2xl shadow-sm px-4 py-3 focus-within:border-brand-400 focus-within:ring-2 focus-within:ring-brand-100 dark:focus-within:ring-brand-900 transition-all">
+        <div className={cn(
+          'relative rounded-2xl border transition-all duration-200',
+          'bg-[#16161f] border-[#2a2a3a]',
+          input.length > 0 ? 'border-[#7c6af7]/40 shadow-glow-sm' : 'hover:border-[#3a3a4a]',
+        )}>
           <textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Takon apa bae karo Ngapak AI... (Enter kanggo kirim)"
-            disabled={disabled}
+            placeholder="Takon apa bae karo Ngapak AI..."
             rows={1}
-            className="flex-1 resize-none bg-transparent text-gray-800 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 text-sm leading-relaxed outline-none min-h-[24px] max-h-[200px]"
+            className="w-full bg-transparent text-[#f0f0f8] placeholder-[#5a5a72] text-sm leading-relaxed
+              resize-none outline-none px-4 pt-3.5 pb-12 min-h-[52px] max-h-[180px]"
           />
-          <button
-            onClick={isLoading ? onStop : handleSubmit}
-            disabled={!isLoading && (!input.trim() || disabled)}
-            className={cn(
-              'flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all',
-              isLoading
-                ? 'bg-red-500 hover:bg-red-600 text-white'
-                : input.trim() && !disabled
-                ? 'bg-brand-500 hover:bg-brand-600 text-white shadow-md hover:shadow-lg'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-400 cursor-not-allowed',
-            )}
-          >
-            {isLoading ? <Square size={16} /> : <Send size={16} />}
-          </button>
+
+          {/* Bottom bar */}
+          <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 pb-3">
+            <div className="flex items-center gap-1">
+              <button className="p-1.5 rounded-lg text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5 transition-all" title="Lampiran (segera hadir)">
+                <Paperclip size={15} />
+              </button>
+              <button className="p-1.5 rounded-lg text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5 transition-all" title="Pencarian web (segera hadir)">
+                <Globe size={15} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-[#3a3a52]">
+                {isLoading ? '' : 'Enter kirim · Shift+Enter baris baru'}
+              </span>
+              <button
+                onClick={isLoading ? onStop : handleSubmit}
+                disabled={!isLoading && !canSend}
+                className={cn(
+                  'w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-200',
+                  isLoading
+                    ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                    : canSend
+                    ? 'bg-[#7c6af7] text-white hover:bg-[#6b59e6] shadow-glow-sm'
+                    : 'bg-[#1e1e2a] text-[#3a3a52] cursor-not-allowed border border-[#2a2a3a]',
+                )}
+              >
+                {isLoading ? <Square size={13} /> : <ArrowUp size={15} />}
+              </button>
+            </div>
+          </div>
         </div>
-        <p className="text-center text-xs text-gray-400 dark:text-gray-500 mt-2">
+
+        <p className="text-center text-[10px] text-[#3a3a52] mt-2">
           Ngapak AI bisa gawe kesalahan. Priksa informasi penting ya!
         </p>
       </div>

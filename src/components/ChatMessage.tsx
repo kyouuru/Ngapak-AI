@@ -4,14 +4,15 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
 import type { Message } from '@/lib/types'
-import { User, Bot, Copy, Check } from 'lucide-react'
+import { Copy, Check, User, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 
 interface ChatMessageProps {
   message: Message
+  isStreaming?: boolean
 }
 
-export function ChatMessage({ message }: ChatMessageProps) {
+export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
 
@@ -22,56 +23,62 @@ export function ChatMessage({ message }: ChatMessageProps) {
   }
 
   return (
-    <div
-      className={cn(
-        'group flex gap-3 px-4 py-5 animate-slide-up',
-        isUser ? 'flex-row-reverse' : 'flex-row',
-      )}
-    >
+    <div className={cn(
+      'group flex gap-4 px-6 py-5 animate-fade-in',
+      isUser ? 'flex-row-reverse' : 'flex-row',
+    )}>
       {/* Avatar */}
-      <div
-        className={cn(
-          'flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md',
-          isUser
-            ? 'bg-gradient-to-br from-brand-500 to-brand-700'
-            : 'bg-gradient-to-br from-emerald-500 to-teal-600',
-        )}
-      >
-        {isUser ? <User size={16} /> : <Bot size={16} />}
-      </div>
-
-      {/* Bubble */}
-      <div
-        className={cn(
-          'relative max-w-[80%] rounded-2xl px-4 py-3 shadow-sm',
-          isUser
-            ? 'bg-gradient-to-br from-brand-500 to-brand-600 text-white rounded-tr-sm'
-            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-tl-sm border border-gray-100 dark:border-gray-700',
-        )}
-      >
+      <div className="flex-shrink-0 mt-0.5">
         {isUser ? (
-          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-            {message.content}
-          </p>
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-glow-sm">
+            <User size={14} className="text-white" />
+          </div>
         ) : (
-          <div className="prose prose-sm max-w-none dark:prose-invert prose-pre:bg-gray-900 prose-pre:text-gray-100 prose-code:text-brand-600 dark:prose-code:text-brand-400">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {message.content}
-            </ReactMarkdown>
+          <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
+            <Sparkles size={14} className="text-white" />
+            {isStreaming && (
+              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0a0a0f] animate-pulse" />
+            )}
           </div>
         )}
+      </div>
+
+      {/* Content */}
+      <div className={cn('flex flex-col gap-1 max-w-[80%]', isUser && 'items-end')}>
+        <span className="text-[11px] font-medium text-[#5a5a72] px-1">
+          {isUser ? 'Kowe' : 'Ngapak AI'}
+        </span>
+
+        <div className={cn(
+          'relative rounded-2xl px-4 py-3',
+          isUser
+            ? 'bg-[#7c6af7] text-white rounded-tr-sm shadow-glow-sm'
+            : 'bg-[#16161f] border border-[#2a2a3a] text-[#f0f0f8] rounded-tl-sm',
+        )}>
+          {isUser ? (
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+          ) : (
+            <div className="prose-dark">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {message.content}
+              </ReactMarkdown>
+              {isStreaming && (
+                <span className="inline-block w-0.5 h-4 bg-[#7c6af7] ml-0.5 animate-pulse align-middle" />
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Copy button */}
-        {!isUser && (
+        {!isUser && !isStreaming && message.content && (
           <button
             onClick={handleCopy}
-            className="absolute -bottom-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full p-1 shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600"
-            title="Salin"
+            className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100"
           >
             {copied ? (
-              <Check size={12} className="text-emerald-500" />
+              <><Check size={11} className="text-emerald-400" /><span className="text-emerald-400">Disalin</span></>
             ) : (
-              <Copy size={12} className="text-gray-400" />
+              <><Copy size={11} /><span>Salin</span></>
             )}
           </button>
         )}
