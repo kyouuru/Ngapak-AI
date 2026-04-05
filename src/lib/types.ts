@@ -1,0 +1,16 @@
+export type Role = 'user' | 'assistant'
+
+export interface Message {
+  id: string
+  role: Role
+  content: string
+  createdAt: Date
+}
+
+export interface ChatSession {
+  id: string
+  title: string
+  messages: Message[]
+  createdAt: Date
+  updatedAt: Date
+}

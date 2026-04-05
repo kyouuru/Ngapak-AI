@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    height: 100%;
+  }
+
+  body {
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #__next,
+  main {
+    height: 100%;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #374151 transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #374151;
+    border-radius: 2px;
+  }
+}
+
+/* Prose overrides for markdown */
+.prose pre {
+  border-radius: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.prose code:not(pre code) {
+  background: #f1f5f9;
+  padding: 0.1em 0.4em;
+  border-radius: 0.3em;
+  font-size: 0.85em;
+}
+
+.dark .prose code:not(pre code) {
+  background: #1e293b;
+}
+
+.prose table {
+  font-size: 0.85rem;
+}
+
+.prose a {
+  color: #0ea5e9;
+  text-decoration: underline;
+}
