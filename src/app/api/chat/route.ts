@@ -1,14 +1,13 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest } from 'next/server'
 import { getSkillById } from '@/lib/skills'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-
 export const runtime = 'edge'
+
+const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
 
 // System prompt utama — diadaptasi dari pola Claude Code
 const BASE_SYSTEM_PROMPT = `Kowe iku Ngapak AI, asisten AI sing pinter, ramah, lan helpful saka tlatah Banyumas (Jawa Tengah).
-Kowe digawe nganggo teknologi Claude saka Anthropic.
+Kowe digawe nganggo teknologi AI canggih.
 
 ## Identitas Kowe
 - Jenengmu: Ngapak AI
@@ -18,19 +17,19 @@ Kowe digawe nganggo teknologi Claude saka Anthropic.
 ## Cara Ngomong
 Kowe bisa ngomong nganggo basa Ngapak (dialek Banyumas) sing khas:
 - "inyong" = saya/aku
-- "kowe" = kamu  
+- "kowe" = kamu
 - "kepriwe" = bagaimana
 - "ngapa" = kenapa/mengapa
 - "ya apa" = iya kan / betul kan
 - "bae" = saja
-- "maning" = lagi/lagi
+- "maning" = lagi
 - "lah" = partikel penegas
 - "wis" = sudah
 - "durung" = belum
 - "arep" = mau/akan
 - "ora" = tidak/bukan
 
-Tapi yen pangguna ngomong basa Indonesia utawa Inggris, kowe jawab nganggo basa sing padha, 
+Tapi yen pangguna ngomong basa Indonesia utawa Inggris, kowe jawab nganggo basa sing padha,
 karo tetep nambahi nuansa Ngapak sing hangat lan ramah.
 
 ## Kemampuan Kowe
@@ -57,7 +56,7 @@ Kowe pinter ing macem-macem bidang:
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, model = 'claude-3-5-sonnet-20241022', skillId = 'general' } = await req.json()
+    const { messages, model = 'anthropic/claude-3.5-sonnet', skillId = 'general' } = await req.json()
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: 'Messages are required' }), {
@@ -66,33 +65,84 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Gabungkan base system prompt + skill-specific addendum
+    const apiKey = process.env.OPENROUTER_API_KEY
+    if (!apiKey) {
+      return new Response(JSON.stringify({ error: 'OpenRouter API key not configured' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+
     const skill = getSkillById(skillId)
     const systemPrompt = BASE_SYSTEM_PROMPT + (skill.systemPromptAddendum || '')
 
-    const stream = await client.messages.stream({
-      model,
-      max_tokens: 8096,
-      system: systemPrompt,
-      messages: messages.map((m: { role: string; content: string }) => ({
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-      })),
+    const response = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://ngapak-ai.vercel.app',
+        'X-Title': 'Ngapak AI',
+      },
+      body: JSON.stringify({
+        model,
+        stream: true,
+        max_tokens: 8096,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages.map((m: { role: string; content: string }) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        ],
+      }),
     })
 
+    if (!response.ok) {
+      const err = await response.text()
+      console.error('OpenRouter error:', err)
+      return new Response(
+        JSON.stringify({ error: 'Waduh, ana masalah karo AI-ne. Coba maning!' }),
+        { status: response.status, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
+    // Stream SSE dari OpenRouter ke client
     const encoder = new TextEncoder()
     const readable = new ReadableStream({
       async start(controller) {
+        const reader = response.body?.getReader()
+        const decoder = new TextDecoder()
+        if (!reader) { controller.close(); return }
+
         try {
-          for await (const chunk of stream) {
-            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk.delta.text })}\n\n`))
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const chunk = decoder.decode(value)
+            const lines = chunk.split('\n')
+
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue
+              const data = line.slice(6).trim()
+              if (data === '[DONE]') {
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+                break
+              }
+              try {
+                const parsed = JSON.parse(data)
+                const text = parsed?.choices?.[0]?.delta?.content
+                if (text) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
+                }
+              } catch {}
             }
           }
-          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-          controller.close()
         } catch (err) {
           controller.error(err)
+        } finally {
+          controller.close()
         }
       },
     })

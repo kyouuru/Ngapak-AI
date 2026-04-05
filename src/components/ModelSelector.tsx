@@ -1,20 +1,20 @@
 'use client'
 
-import { ChevronDown, Zap, Brain, Cpu } from 'lucide-react'
+import { ChevronDown, Zap, Brain, Cpu, Flame } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 
 const MODELS = [
   {
-    id: 'claude-3-5-sonnet-20241022',
+    id: 'anthropic/claude-3.5-sonnet',
     name: 'Claude 3.5 Sonnet',
     desc: 'Paling pinter & cepet',
     icon: Brain,
-    badge: 'Recommended',
+    badge: 'Best',
     badgeColor: 'text-violet-400 bg-violet-400/10 border-violet-400/20',
   },
   {
-    id: 'claude-3-5-haiku-20241022',
+    id: 'anthropic/claude-3.5-haiku',
     name: 'Claude 3.5 Haiku',
     desc: 'Cepet banget, hemat',
     icon: Zap,
@@ -22,12 +22,28 @@ const MODELS = [
     badgeColor: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
   },
   {
-    id: 'claude-3-opus-20240229',
-    name: 'Claude 3 Opus',
-    desc: 'Paling canggih',
+    id: 'google/gemini-2.0-flash-001',
+    name: 'Gemini 2.0 Flash',
+    desc: 'Google, super cepet',
+    icon: Flame,
+    badge: 'Free',
+    badgeColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+  },
+  {
+    id: 'meta-llama/llama-3.3-70b-instruct',
+    name: 'Llama 3.3 70B',
+    desc: 'Open source, gratis',
     icon: Cpu,
-    badge: 'Powerful',
-    badgeColor: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+    badge: 'Free',
+    badgeColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+  },
+  {
+    id: 'deepseek/deepseek-chat-v3-0324:free',
+    name: 'DeepSeek V3',
+    desc: 'Kuat kanggo coding',
+    icon: Cpu,
+    badge: 'Free',
+    badgeColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
   },
 ]
 
@@ -39,8 +55,8 @@ interface ModelSelectorProps {
 export function ModelSelector({ value, onChange }: ModelSelectorProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const selected = MODELS.find((m) => m.id === value) ?? MODELS[0]
-  const Icon = selected?.icon ?? Brain
+  const selected = MODELS.find((m) => m.id === value) ?? MODELS[0]!
+  const Icon = selected.icon
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -58,12 +74,16 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
           bg-[#1a1a24] border border-[#2a2a3a] text-[#9090a8] hover:text-[#f0f0f8] hover:border-[#3a3a4a]"
       >
         <Icon size={12} className="text-[#7c6af7]" />
-        <span>{selected?.name}</span>
+        <span className="hidden sm:inline">{selected.name}</span>
         <ChevronDown size={11} className={cn('transition-transform text-[#5a5a72]', open && 'rotate-180')} />
       </button>
 
       {open && (
         <div className="absolute top-full mt-2 right-0 w-72 rounded-2xl border border-[#2a2a3a] bg-[#111118] shadow-card z-50 overflow-hidden animate-fade-in">
+          <div className="px-3 py-2.5 border-b border-[#1e1e2a]">
+            <p className="text-[11px] font-medium text-[#5a5a72] uppercase tracking-wider">Pilih Model</p>
+            <p className="text-[10px] text-[#3a3a52] mt-0.5">via OpenRouter</p>
+          </div>
           <div className="p-1.5">
             {MODELS.map((model) => {
               const MIcon = model.icon
@@ -74,7 +94,9 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
                   onClick={() => { onChange(model.id); setOpen(false) }}
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left',
-                    isActive ? 'bg-[#7c6af7]/10 border border-[#7c6af7]/20' : 'hover:bg-white/[0.04] border border-transparent',
+                    isActive
+                      ? 'bg-[#7c6af7]/10 border border-[#7c6af7]/20'
+                      : 'hover:bg-white/[0.04] border border-transparent',
                   )}
                 >
                   <div className={cn(
@@ -94,9 +116,7 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
                     </div>
                     <p className="text-[11px] text-[#5a5a72] mt-0.5">{model.desc}</p>
                   </div>
-                  {isActive && (
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#7c6af7] flex-shrink-0" />
-                  )}
+                  {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[#7c6af7] flex-shrink-0" />}
                 </button>
               )
             })}
