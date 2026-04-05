@@ -9,9 +9,11 @@ import { ChatInput } from './ChatInput'
 import { TypingIndicator } from './TypingIndicator'
 import { ModelSelector } from './ModelSelector'
 import { SkillSelector } from './SkillSelector'
+import { LanguageSelector } from './LanguageSelector'
 import { LimitModal } from './LimitModal'
 import type { Message, ChatSession } from '@/lib/types'
 import { getSkillById } from '@/lib/skills'
+import { getLanguageById } from '@/lib/languages'
 import { GUEST_LIMIT, USER_LIMIT } from '@/lib/rateLimit'
 import { cn } from '@/lib/utils'
 
@@ -40,6 +42,7 @@ export function ChatPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [model, setModel] = useState('deepseek/deepseek-chat-v3-0324:free')
   const [skillId, setSkillId] = useState('general')
+  const [langId, setLangId] = useState('id')
   const [limitUsed, setLimitUsed] = useState(0)
   const [showLimitModal, setShowLimitModal] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
@@ -48,7 +51,6 @@ export function ChatPage() {
   const activeSession = sessions.find((s) => s.id === activeSessionId) ?? null
   const isLimitReached = limitUsed >= limitMax
 
-  // Fetch limit status dari server
   const fetchLimit = useCallback(async () => {
     try {
       const res = await fetch('/api/limit')
@@ -133,11 +135,10 @@ export function ChatPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history, model, skillId }),
+        body: JSON.stringify({ messages: history, model, skillId, langId }),
         signal: controller.signal,
       })
 
-      // Rate limit dari server
       if (res.status === 429) {
         const data = await res.json()
         setLimitUsed(data.used ?? limitMax)
@@ -149,7 +150,6 @@ export function ChatPage() {
 
       if (!res.ok) throw new Error('Request gagal')
 
-      // Update limit dari header
       const remaining = res.headers.get('X-RateLimit-Remaining')
       const limit = res.headers.get('X-RateLimit-Limit')
       if (remaining !== null && limit !== null) {
@@ -200,10 +200,11 @@ export function ChatPage() {
       setStreamingContent('')
       abortRef.current = null
     }
-  }, [activeSessionId, isLoading, isLimitReached, limitMax, model, sessions, skillId])
+  }, [activeSessionId, isLoading, isLimitReached, limitMax, model, sessions, skillId, langId])
 
   const messages = activeSession?.messages ?? []
   const isEmpty = messages.length === 0 && !isLoading
+  const lang = getLanguageById(langId)
 
   return (
     <div className="flex h-screen bg-[#0a0a0f] overflow-hidden">
@@ -229,7 +230,7 @@ export function ChatPage() {
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-[#1e1e2a] bg-[#0a0a0f]/80 backdrop-blur-xl z-10 flex-shrink-0">
+        <header className="flex items-center gap-2 px-4 py-3 border-b border-[#1e1e2a] bg-[#0a0a0f]/80 backdrop-blur-xl z-10 flex-shrink-0">
           <button
             onClick={() => setSidebarOpen(true)}
             className="md:hidden p-2 rounded-xl text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5 transition-all flex-shrink-0"
@@ -248,7 +249,7 @@ export function ChatPage() {
                       : (limitMax - limitUsed) <= 3 ? 'text-amber-400'
                       : 'text-[#5a5a72]',
                   )}>
-                    {isLimitReached ? 'Limit harian habis' : `${limitMax - limitUsed} chat tersisa hari ini`}
+                    {isLimitReached ? 'Limit harian habis' : `${limitMax - limitUsed} chat tersisa`}
                   </span>
                 </p>
               </div>
@@ -262,7 +263,9 @@ export function ChatPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Controls kanan */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <LanguageSelector value={langId} onChange={setLangId} />
             <SkillSelector value={skillId} onChange={setSkillId} />
             <ModelSelector value={model} onChange={setModel} />
           </div>
@@ -273,8 +276,8 @@ export function ChatPage() {
           <div className="flex items-center gap-2.5 px-4 py-2.5 bg-red-500/10 border-b border-red-500/20 flex-shrink-0">
             <span className="text-xs text-red-300 flex-1">
               {isLoggedIn
-                ? `Limit harian ${limitMax} chat wis habis. Balik maning sesuk!`
-                : `Limit guest ${GUEST_LIMIT} chat habis. Login Google kanggo entuk ${USER_LIMIT} chat/hari!`}
+                ? `Limit harian ${limitMax} chat habis. Balik sesuk!`
+                : `Limit guest ${GUEST_LIMIT} chat habis. Login Google → ${USER_LIMIT} chat/hari!`}
             </span>
             {!isLoggedIn && (
               <button
@@ -299,11 +302,11 @@ export function ChatPage() {
               </div>
               <h2 className="text-3xl font-bold text-gradient mb-2">Ngapak AI</h2>
               <p className="text-[#9090a8] text-center max-w-sm mb-1 text-sm">
-                Halo! Inyong asisten AI saka tlatah Banyumas.
+                {lang.greeting} Inyong asisten AI saka tlatah Banyumas.
               </p>
               <p className="text-[#5a5a72] text-center max-w-sm mb-10 text-xs">
                 {isLoggedIn
-                  ? `Kowe duwe ${limitMax - limitUsed} chat tersisa dina iki`
+                  ? `${limitMax - limitUsed} chat tersisa hari ini`
                   : `Guest: ${GUEST_LIMIT} chat/hari · Login Google: ${USER_LIMIT} chat/hari`}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">

@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { getSkillById } from '@/lib/skills'
+import { getLanguageById } from '@/lib/languages'
 import { auth } from '@/lib/auth'
 import { checkLimit, incrementUsage } from '@/lib/rateLimit'
 
@@ -96,7 +97,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { messages, model: requestedModel, skillId = 'general' } = await req.json()
+    const { messages, model: requestedModel, skillId = 'general', langId = 'id' } = await req.json()
     const model = requestedModel ?? FREE_MODELS[0]
 
     if (!messages || !Array.isArray(messages)) {
@@ -118,7 +119,8 @@ export async function POST(req: NextRequest) {
     incrementUsage(limitKey)
 
     const skill = getSkillById(skillId)
-    const systemPrompt = BASE_SYSTEM_PROMPT + (skill.systemPromptAddendum || '')
+    const language = getLanguageById(langId)
+    const systemPrompt = BASE_SYSTEM_PROMPT + language.systemAddendum + (skill.systemPromptAddendum || '')
     const formattedMessages = messages.map((m: { role: string; content: string }) => ({
       role: m.role,
       content: m.content,
