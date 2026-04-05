@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { Providers } from '@/components/Providers'
 
 export const viewport: Viewport = {
   themeColor: '#0a0a0f',
@@ -28,7 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="h-full antialiased bg-[#0a0a0f]">{children}</body>
+      <body className="h-full antialiased bg-[#0a0a0f]">
+        <Providers>{children}</Providers>
+      </body>
     </html>
   )
 }

@@ -1,9 +1,10 @@
 'use client'
 
-import { Plus, MessageSquare, Trash2, X, Sparkles, ChevronLeft, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import { Plus, MessageSquare, Trash2, X, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { ChatSession } from '@/lib/types'
-import { MESSAGE_LIMIT } from '@/lib/types'
+import { LimitBadge } from './LimitBadge'
+import { AuthButton } from './AuthButton'
 
 interface SidebarProps {
   sessions: ChatSession[]
@@ -11,15 +12,19 @@ interface SidebarProps {
   onNewChat: () => void
   onSelectSession: (id: string) => void
   onDeleteSession: (id: string) => void
-  isOpen: boolean        // mobile overlay
-  onClose: () => void    // tutup mobile overlay
-  collapsed: boolean     // desktop minimize
+  isOpen: boolean
+  onClose: () => void
+  collapsed: boolean
   onToggleCollapse: () => void
+  limitUsed: number
+  limitMax: number
+  isLoggedIn: boolean
+  user?: { name?: string | null; email?: string | null; image?: string | null } | null
 }
 
 export function Sidebar({
   sessions, activeSessionId, onNewChat, onSelectSession, onDeleteSession,
-  isOpen, onClose, collapsed, onToggleCollapse,
+  isOpen, onClose, collapsed, onToggleCollapse, limitUsed, limitMax, isLoggedIn, user,
 }: SidebarProps) {
   return (
     <>
@@ -124,9 +129,6 @@ export function Sidebar({
               )}
               {sessions.map((session) => {
                 const isActive = activeSessionId === session.id
-                const remaining = MESSAGE_LIMIT - (session.userMessageCount ?? 0)
-                const isExhausted = remaining <= 0
-
                 return (
                   <div
                     key={session.id}
@@ -142,29 +144,16 @@ export function Sidebar({
                   >
                     <MessageSquare
                       size={13}
-                      className={cn(
-                        'flex-shrink-0',
-                        isActive ? 'text-[#7c6af7]' : isExhausted ? 'text-[#3a3a52]' : 'text-[#5a5a72]',
-                      )}
+                      className={cn('flex-shrink-0', isActive ? 'text-[#7c6af7]' : 'text-[#5a5a72]')}
                     />
                     {!collapsed && (
                       <>
-                        <div className="flex-1 min-w-0">
-                          <span className={cn(
-                            'text-xs truncate block',
-                            isActive ? 'text-[#f0f0f8]' : isExhausted ? 'text-[#5a5a72]' : 'text-[#9090a8]',
-                          )}>
-                            {session.title}
-                          </span>
-                          {isExhausted && (
-                            <span className="text-[9px] text-red-400/70">Limit tercapai</span>
-                          )}
-                          {!isExhausted && session.userMessageCount > 0 && (
-                            <span className="text-[9px] text-[#3a3a52]">
-                              {remaining}/{MESSAGE_LIMIT} sisa
-                            </span>
-                          )}
-                        </div>
+                        <span className={cn(
+                          'flex-1 text-xs truncate',
+                          isActive ? 'text-[#f0f0f8]' : 'text-[#9090a8]',
+                        )}>
+                          {session.title}
+                        </span>
                         <button
                           onClick={(e) => { e.stopPropagation(); onDeleteSession(session.id) }}
                           className="opacity-0 group-hover:opacity-100 text-[#5a5a72] hover:text-red-400 transition-all p-0.5 rounded flex-shrink-0"
@@ -182,24 +171,16 @@ export function Sidebar({
 
         {/* Footer */}
         {!collapsed && (
-          <div className="px-4 py-4 border-t border-[#1e1e2a] flex-shrink-0">
-            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[#1a1a24] border border-[#2a2a3a]">
-              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-[9px] font-bold">N</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-[#f0f0f8]">Ngapak AI</p>
-                <p className="text-[10px] text-[#5a5a72]">Free · {MESSAGE_LIMIT} pesan/sesi</p>
-              </div>
-            </div>
+          <div className="px-4 py-4 border-t border-[#1e1e2a] flex-shrink-0 space-y-3">
+            <LimitBadge used={limitUsed} limit={limitMax} isLoggedIn={isLoggedIn} />
+            <AuthButton user={user} />
           </div>
         )}
 
         {collapsed && (
-          <div className="px-2 py-4 border-t border-[#1e1e2a] flex-shrink-0 flex justify-center">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
-              <span className="text-white text-[9px] font-bold">N</span>
-            </div>
+          <div className="px-2 py-4 border-t border-[#1e1e2a] flex-shrink-0 flex flex-col items-center gap-2">
+            <LimitBadge used={limitUsed} limit={limitMax} isLoggedIn={isLoggedIn} compact />
+            <AuthButton user={user} compact />
           </div>
         )}
       </aside>

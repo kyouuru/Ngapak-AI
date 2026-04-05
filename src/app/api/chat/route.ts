@@ -1,38 +1,40 @@
 import { NextRequest } from 'next/server'
 import { getSkillById } from '@/lib/skills'
+import { auth } from '@/lib/auth'
+import { checkLimit, incrementUsage } from '@/lib/rateLimit'
 
-export const runtime = 'edge'
+export const runtime = 'nodejs' // pakai nodejs agar auth bisa jalan
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
 
+const FREE_MODELS = [
+  'deepseek/deepseek-chat-v3-0324:free',
+  'google/gemini-2.0-flash-001',
+]
+
+// System prompt mendukung multi-bahasa otomatis
 const BASE_SYSTEM_PROMPT = `Kowe iku Ngapak AI, asisten AI sing pinter, ramah, lan helpful saka tlatah Banyumas (Jawa Tengah).
-Kowe digawe nganggo teknologi AI canggih.
+Kowe digawe nganggo teknologi AI canggih dening Danixyz.
 
 ## Identitas Kowe
 - Jenengmu: Ngapak AI
-- Asal: Banyumas, Jawa Tengah
+- Asal: Banyumas, Jawa Tengah  
 - Karakter: Ramah, jujur, helpful, lan sedikit humoris
 
-## Cara Ngomong
-Kowe bisa ngomong nganggo basa Ngapak (dialek Banyumas) sing khas:
-- "inyong" = saya/aku
-- "kowe" = kamu
-- "kepriwe" = bagaimana
-- "ngapa" = kenapa/mengapa
-- "ya apa" = iya kan / betul kan
-- "bae" = saja
-- "maning" = lagi
-- "lah" = partikel penegas
-- "wis" = sudah
-- "durung" = belum
-- "arep" = mau/akan
-- "ora" = tidak/bukan
+## ATURAN BAHASA — PENTING!
+Kowe WAJIB ngikuti aturan bahasa iki:
+1. Yen pangguna nulis nganggo Basa Indonesia → jawab nganggo Basa Indonesia
+2. Yen pangguna nulis nganggo English → jawab nganggo English
+3. Yen pangguna nulis nganggo Basa Jawa / Ngapak → jawab nganggo Basa Ngapak
+4. Yen pangguna nulis nganggo bahasa lain (Arab, Mandarin, dll) → jawab nganggo bahasa sing padha
+5. Yen pangguna minta ganti bahasa → ikuti permintaane
 
-Tapi yen pangguna ngomong basa Indonesia utawa Inggris, kowe jawab nganggo basa sing padha,
-karo tetep nambahi nuansa Ngapak sing hangat lan ramah.
+Tapi TANSAH tambahi sedikit nuansa Ngapak sing hangat ing salam utawa penutup, contoh:
+- Basa Indonesia: "Halo! Inyong siap bantu ya!" atau "Semoga membantu, bro!"
+- English: "Hey there! Inyong (that's me) is ready to help!"
+- Ngapak: "Halo kowe! Inyong siap mbantu!"
 
-## Kemampuan Kowe
-Kowe pinter ing macem-macem bidang:
+## Kemampuan
 - Coding & Programming: semua bahasa pemrograman, debugging, arsitektur
 - Matematika & Sains: kalkulasi, penjelasan konsep
 - Penulisan: kreatif, teknis, akademis
@@ -40,21 +42,11 @@ Kowe pinter ing macem-macem bidang:
 - Bahasa: terjemahan, grammar, penjelasan
 - Umum: sejarah, budaya, sains, teknologi
 
-## Prinsip Jawaban
-1. Akurat — kasih informasi yang benar, akui yen ora ngerti
-2. Helpful — fokus pada apa yang benar-benar dibutuhkan user
-3. Jelas — gunakan struktur yang mudah dipahami
-4. Ringkas — jangan bertele-tele, tapi lengkap
-
 ## Format Jawaban
 - Gunakan markdown untuk kode, list, dan heading
 - Untuk kode: selalu gunakan code block dengan bahasa yang tepat
-- Untuk penjelasan panjang: gunakan heading dan bullet points`
-
-const FREE_MODELS = [
-  'deepseek/deepseek-chat-v3-0324:free',
-  'google/gemini-2.0-flash-001',
-]
+- Untuk penjelasan panjang: gunakan heading dan bullet points
+- Untuk jawaban singkat: langsung ke poin`
 
 async function callOpenRouter(
   apiKey: string,
@@ -74,16 +66,36 @@ async function callOpenRouter(
       model,
       stream: true,
       max_tokens: 8096,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages,
-      ],
+      messages: [{ role: 'system', content: systemPrompt }, ...messages],
     }),
   })
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth()
+    const isLoggedIn = !!session?.user
+
+    // Buat key unik: user ID kalau login, IP kalau guest
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? req.headers.get('x-real-ip')
+      ?? 'unknown'
+    const limitKey = isLoggedIn ? `user:${session!.user!.id ?? session!.user!.email}` : `ip:${ip}`
+
+    // Cek rate limit
+    const limitCheck = checkLimit(limitKey, isLoggedIn)
+    if (!limitCheck.allowed) {
+      return new Response(
+        JSON.stringify({
+          error: 'rate_limit',
+          isLoggedIn,
+          used: limitCheck.used,
+          limit: limitCheck.limit,
+        }),
+        { status: 429, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
     const { messages, model: requestedModel, skillId = 'general' } = await req.json()
     const model = requestedModel ?? FREE_MODELS[0]
 
@@ -96,11 +108,14 @@ export async function POST(req: NextRequest) {
 
     const apiKey = process.env.OPENROUTER_API_KEY
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'OpenRouter API key not configured' }), {
+      return new Response(JSON.stringify({ error: 'API key not configured' }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       })
     }
+
+    // Increment usage setelah validasi
+    incrementUsage(limitKey)
 
     const skill = getSkillById(skillId)
     const systemPrompt = BASE_SYSTEM_PROMPT + (skill.systemPromptAddendum || '')
@@ -132,61 +147,46 @@ export async function POST(req: NextRequest) {
         const decoder = new TextDecoder()
         if (!reader) { controller.close(); return }
 
-        // Buffer untuk akumulasi data yang belum lengkap antar chunk
         let buffer = ''
-
         try {
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
 
-            // Tambahkan ke buffer, jangan langsung split
             buffer += decoder.decode(value, { stream: true })
-
-            // Proses semua baris yang sudah lengkap (diakhiri \n)
             const lines = buffer.split('\n')
-
-            // Baris terakhir mungkin belum lengkap — simpan kembali ke buffer
             buffer = lines.pop() ?? ''
 
             for (const line of lines) {
               const trimmed = line.trim()
               if (!trimmed || !trimmed.startsWith('data: ')) continue
-
               const data = trimmed.slice(6).trim()
               if (data === '[DONE]') {
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'))
                 return
               }
-
               try {
                 const parsed = JSON.parse(data)
                 const text = parsed?.choices?.[0]?.delta?.content
                 if (typeof text === 'string' && text.length > 0) {
-                  controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({ text })}\n\n`),
-                  )
-                }
-              } catch {
-                // Baris JSON tidak valid — skip
-              }
-            }
-          }
-
-          // Proses sisa buffer jika ada
-          if (buffer.trim()) {
-            const trimmed = buffer.trim()
-            if (trimmed.startsWith('data: ') && trimmed.slice(6).trim() !== '[DONE]') {
-              try {
-                const parsed = JSON.parse(trimmed.slice(6).trim())
-                const text = parsed?.choices?.[0]?.delta?.content
-                if (typeof text === 'string' && text.length > 0) {
-                  controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({ text })}\n\n`),
-                  )
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
                 }
               } catch {}
             }
+          }
+
+          // Proses sisa buffer
+          if (buffer.trim().startsWith('data: ')) {
+            try {
+              const data = buffer.trim().slice(6).trim()
+              if (data !== '[DONE]') {
+                const parsed = JSON.parse(data)
+                const text = parsed?.choices?.[0]?.delta?.content
+                if (typeof text === 'string' && text.length > 0) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
+                }
+              }
+            } catch {}
           }
 
           controller.enqueue(encoder.encode('data: [DONE]\n\n'))
@@ -203,6 +203,10 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
+        // Kirim info limit ke client via header
+        'X-RateLimit-Limit': String(limitCheck.limit),
+        'X-RateLimit-Remaining': String(limitCheck.remaining - 1),
+        'X-RateLimit-LoggedIn': String(isLoggedIn),
       },
     })
   } catch (error) {
