@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ArrowUp, Square, Paperclip, Globe, X, Image as ImageIcon } from 'lucide-react'
+import { ArrowUp, Square, Paperclip, Globe, X, FileText, FileCode, FileSpreadsheet, Image } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { processFileAttachment, type ProcessedAttachment } from '@/lib/fileProcessor'
 
 interface ChatInputProps {
-  onSend: (message: string, attachment?: { name: string; content: string; type: string }) => void
+  onSend: (message: string, attachment?: ProcessedAttachment) => void
   isLoading: boolean
   onStop: () => void
   placeholder?: string
@@ -15,16 +16,27 @@ interface ChatInputProps {
   onToggleWebSearch?: () => void
 }
 
+const ACCEPTED = 'image/*,.txt,.md,.js,.ts,.jsx,.tsx,.py,.rb,.go,.rs,.java,.cpp,.c,.cs,.php,.swift,.kt,.html,.css,.scss,.json,.yaml,.yml,.toml,.xml,.sql,.sh,.bash,.env,.csv'
+
+function FileIcon({ type, name }: { type: string; name: string }) {
+  if (type.startsWith('image/')) return <Image size={14} className="text-violet-400" />
+  const ext = name.split('.').pop()?.toLowerCase() ?? ''
+  if (['json', 'yaml', 'yml', 'toml', 'xml'].includes(ext)) return <FileCode size={14} className="text-amber-400" />
+  if (['csv'].includes(ext)) return <FileSpreadsheet size={14} className="text-emerald-400" />
+  if (['js', 'ts', 'jsx', 'tsx', 'py', 'rb', 'go', 'rs', 'java', 'cpp', 'c', 'cs', 'php', 'swift', 'kt', 'html', 'css', 'scss', 'sql', 'sh', 'bash'].includes(ext))
+    return <FileCode size={14} className="text-blue-400" />
+  return <FileText size={14} className="text-[#9090a8]" />
+}
+
 export function ChatInput({
   onSend, isLoading, onStop,
   placeholder = 'Ketik pesan kamu...',
-  disabled = false,
-  footer,
-  webSearchEnabled = false,
-  onToggleWebSearch,
+  disabled = false, footer,
+  webSearchEnabled = false, onToggleWebSearch,
 }: ChatInputProps) {
   const [input, setInput] = useState('')
-  const [attachment, setAttachment] = useState<{ name: string; content: string; type: string } | null>(null)
+  const [attachment, setAttachment] = useState<ProcessedAttachment | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -37,8 +49,8 @@ export function ChatInput({
 
   const handleSubmit = () => {
     const trimmed = input.trim()
-    if ((!trimmed && !attachment) || isLoading || disabled) return
-    onSend(trimmed || (attachment ? `[File: ${attachment.name}]` : ''), attachment ?? undefined)
+    if ((!trimmed && !attachment) || isLoading || disabled || isProcessing) return
+    onSend(trimmed, attachment ?? undefined)
     setInput('')
     setAttachment(null)
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
@@ -55,16 +67,25 @@ export function ChatInput({
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Limit 5MB
-    if (file.size > 5 * 1024 * 1024) {
-      alert('File terlalu besar. Maksimal 5MB.')
+    if (file.size > 10 * 1024 * 1024) {
+      setAttachment({ kind: 'error', name: file.name, message: 'File terlalu besar. Maksimal 10MB.' })
+      e.target.value = ''
       return
     }
 
+    setIsProcessing(true)
     const reader = new FileReader()
+
     reader.onload = (ev) => {
-      const content = ev.target?.result as string
-      setAttachment({ name: file.name, content, type: file.type })
+      const result = ev.target?.result as string
+      const processed = processFileAttachment(file.name, file.type, result)
+      setAttachment(processed)
+      setIsProcessing(false)
+    }
+
+    reader.onerror = () => {
+      setAttachment({ kind: 'error', name: file.name, message: 'Gagal membaca file.' })
+      setIsProcessing(false)
     }
 
     if (file.type.startsWith('image/')) {
@@ -73,12 +94,10 @@ export function ChatInput({
       reader.readAsText(file)
     }
 
-    // Reset input agar bisa pilih file yang sama lagi
     e.target.value = ''
   }
 
-  const canSend = (input.trim().length > 0 || !!attachment) && !isLoading && !disabled
-  const isImage = attachment?.type.startsWith('image/')
+  const canSend = (input.trim().length > 0 || (!!attachment && attachment.kind !== 'error')) && !isLoading && !disabled && !isProcessing
 
   return (
     <div className="px-4 pb-4 pt-2">
@@ -94,22 +113,43 @@ export function ChatInput({
 
           {/* Attachment preview */}
           {attachment && (
-            <div className="flex items-center gap-2 px-4 pt-3">
-              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#1a1a24] border border-[#2a2a3a] max-w-xs">
-                {isImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={attachment.content} alt={attachment.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
-                ) : (
-                  <ImageIcon size={14} className="text-[#7c6af7] flex-shrink-0" />
-                )}
-                <span className="text-xs text-[#9090a8] truncate max-w-[150px]">{attachment.name}</span>
-                <button
-                  onClick={() => setAttachment(null)}
-                  className="text-[#5a5a72] hover:text-red-400 transition-colors flex-shrink-0 ml-1"
-                >
-                  <X size={12} />
-                </button>
-              </div>
+            <div className="px-4 pt-3">
+              {attachment.kind === 'error' ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                  <X size={12} className="text-red-400 flex-shrink-0" />
+                  <span className="text-xs text-red-300 flex-1">{attachment.message}</span>
+                  <button onClick={() => setAttachment(null)} className="text-red-400 hover:text-red-300 flex-shrink-0">
+                    <X size={12} />
+                  </button>
+                </div>
+              ) : attachment.kind === 'image' ? (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1a1a24] border border-[#2a2a3a]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`data:${attachment.mediaType};base64,${attachment.base64}`}
+                    alt={attachment.name}
+                    className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-[#2a2a3a]"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-[#f0f0f8] truncate">{attachment.name}</p>
+                    <p className="text-[10px] text-[#5a5a72]">{attachment.sizeKb}KB · {attachment.mediaType.split('/')[1].toUpperCase()}</p>
+                  </div>
+                  <button onClick={() => setAttachment(null)} className="text-[#5a5a72] hover:text-red-400 transition-colors flex-shrink-0">
+                    <X size={13} />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1a1a24] border border-[#2a2a3a]">
+                  <FileIcon type="text" name={attachment.name} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-[#f0f0f8] truncate">{attachment.name}</p>
+                    <p className="text-[10px] text-[#5a5a72]">{attachment.language} · {attachment.content.length} chars</p>
+                  </div>
+                  <button onClick={() => setAttachment(null)} className="text-[#5a5a72] hover:text-red-400 transition-colors flex-shrink-0">
+                    <X size={13} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -118,8 +158,8 @@ export function ChatInput({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            disabled={disabled}
+            placeholder={isProcessing ? 'Memproses file...' : placeholder}
+            disabled={disabled || isProcessing}
             rows={1}
             className="w-full bg-transparent text-[#f0f0f8] placeholder-[#5a5a72] text-sm leading-relaxed
               resize-none outline-none px-4 pt-3.5 pb-12 min-h-[52px] max-h-[180px] disabled:cursor-not-allowed"
@@ -128,29 +168,22 @@ export function ChatInput({
           {/* Bottom bar */}
           <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 pb-3">
             <div className="flex items-center gap-1">
-              {/* Upload file */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css"
-                className="hidden"
-                onChange={handleFileChange}
-              />
+              <input ref={fileInputRef} type="file" accept={ACCEPTED} className="hidden" onChange={handleFileChange} />
               <button
                 onClick={() => fileInputRef.current?.click()}
-                disabled={disabled}
+                disabled={disabled || isProcessing}
                 className={cn(
-                  'p-1.5 rounded-lg transition-all',
-                  attachment
-                    ? 'text-[#7c6af7] bg-[#7c6af7]/10'
+                  'flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] transition-all',
+                  attachment && attachment.kind !== 'error'
+                    ? 'text-[#7c6af7] bg-[#7c6af7]/10 border border-[#7c6af7]/20'
                     : 'text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5',
                 )}
-                title="Upload gambar atau file teks"
+                title="Upload gambar atau file kode"
               >
-                <Paperclip size={15} />
+                <Paperclip size={13} />
+                <span className="hidden sm:inline">{isProcessing ? 'Loading...' : 'File'}</span>
               </button>
 
-              {/* Web search toggle */}
               <button
                 onClick={onToggleWebSearch}
                 disabled={disabled}
@@ -160,10 +193,10 @@ export function ChatInput({
                     ? 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20'
                     : 'text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5',
                 )}
-                title={webSearchEnabled ? 'Web search aktif — klik untuk nonaktifkan' : 'Aktifkan web search'}
+                title={webSearchEnabled ? 'Web search aktif' : 'Aktifkan web search'}
               >
                 <Globe size={13} />
-                {webSearchEnabled && <span>Web</span>}
+                <span className="hidden sm:inline">{webSearchEnabled ? 'Web On' : 'Web'}</span>
               </button>
             </div>
 

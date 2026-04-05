@@ -44,7 +44,7 @@ async function callOpenRouter(
   apiKey: string,
   model: string,
   systemPrompt: string,
-  messages: { role: string; content: string }[],
+  messages: { role: string; content: unknown }[],
 ): Promise<Response> {
   return fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: 'POST',
@@ -115,8 +115,9 @@ export async function POST(req: NextRequest) {
       ? '\n\n## WEB SEARCH MODE\nUser mengaktifkan web search. Jika pertanyaan membutuhkan info terkini, beritahu user bahwa kamu tidak bisa browsing secara langsung, tapi berikan jawaban terbaik berdasarkan pengetahuanmu dan sarankan user untuk verifikasi di sumber terpercaya.'
       : ''
     const systemPrompt = BASE_SYSTEM_PROMPT + language.systemAddendum + (skill.systemPromptAddendum || '') + webSearchNote
-    const formattedMessages = messages.map((m: { role: string; content: string }) => ({
+    const formattedMessages = messages.map((m: { role: string; content: unknown }) => ({
       role: m.role,
+      // content bisa string atau array of blocks (untuk gambar)
       content: m.content,
     }))
 

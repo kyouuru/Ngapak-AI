@@ -16,6 +16,7 @@ import { getSkillById } from '@/lib/skills'
 import { getLanguageById } from '@/lib/languages'
 import { GUEST_LIMIT, USER_LIMIT } from '@/lib/rateLimit'
 import { cn } from '@/lib/utils'
+import { buildMessageContent, type ProcessedAttachment } from '@/lib/fileProcessor'
 
 const SUGGESTIONS = [
   { icon: Code2,     text: 'Kepriwe carane gawe REST API nganggo Next.js?', label: 'Coding',  skillId: 'code' },
@@ -98,14 +99,14 @@ export function ChatPage() {
     setActiveSessionId((prev) => prev === id ? null : prev)
   }, [])
 
-  const sendMessage = useCallback(async (content: string, attachment?: { name: string; content: string; type: string }) => {
+  const sendMessage = useCallback(async (content: string, attachment?: ProcessedAttachment) => {
     if (isLoading) return
     if (isLimitReached) { setShowLimitModal(true); return }
 
     let sessionId = activeSessionId
     if (!sessionId) {
       const s: ChatSession = {
-        id: generateId(), title: generateTitle(content), messages: [],
+        id: generateId(), title: generateTitle(content || (attachment?.name ?? 'File')), messages: [],
         createdAt: new Date(), updatedAt: new Date(), userMessageCount: 0,
       }
       setSessions((prev) => [s, ...prev])
@@ -113,19 +114,17 @@ export function ChatPage() {
       sessionId = s.id
     }
 
-    // Buat konten pesan dengan attachment jika ada
-    let fullContent = content
-    if (attachment) {
-      if (attachment.type.startsWith('image/')) {
-        fullContent = content ? `${content}\n\n[Gambar: ${attachment.name}]` : `[Gambar: ${attachment.name}]`
-      } else {
-        fullContent = content
-          ? `${content}\n\n**File: ${attachment.name}**\n\`\`\`\n${attachment.content.slice(0, 3000)}\n\`\`\``
-          : `**File: ${attachment.name}**\n\`\`\`\n${attachment.content.slice(0, 3000)}\n\`\`\``
-      }
-    }
+    // Build display content untuk UI (selalu string)
+    const displayContent = attachment
+      ? attachment.kind === 'image'
+        ? (content ? `${content}\n\n📎 ${attachment.name}` : `📎 ${attachment.name}`)
+        : (content ? `${content}\n\n📄 ${attachment.name}` : `📄 ${attachment.name}`)
+      : content
 
-    const userMsg: Message = { id: generateId(), role: 'user', content: fullContent, createdAt: new Date(), skillId }
+    // Build API content (bisa string atau multipart blocks)
+    const apiContent = buildMessageContent(content, attachment ?? null)
+
+    const userMsg: Message = { id: generateId(), role: 'user', content: displayContent, createdAt: new Date(), skillId }
 
     setSessions((prev) => prev.map((s) => s.id === sessionId ? {
       ...s,
@@ -142,8 +141,11 @@ export function ChatPage() {
 
     try {
       const currentSession = sessions.find((s) => s.id === sessionId)
-      const history = [...(currentSession?.messages ?? []), userMsg]
-        .map((m) => ({ role: m.role, content: m.content }))
+      // Kirim history dengan display content (string), tapi pesan terakhir pakai apiContent (bisa multipart)
+      const history = [
+        ...(currentSession?.messages ?? []).map((m) => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: apiContent },
+      ]
 
       const res = await fetch('/api/chat', {
         method: 'POST',
