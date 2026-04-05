@@ -53,7 +53,7 @@ export function Sidebar({
               </div>
               <div>
                 <h1 className="text-sm font-semibold text-[#f0f0f8] leading-none">Ngapak AI</h1>
-                <p className="text-[10px] text-[#5a5a72] mt-0.5">Powered by Claude</p>
+                <p className="text-[10px] text-[#5a5a72] mt-0.5">Powered by Danixyz</p>
               </div>
             </div>
           )}
