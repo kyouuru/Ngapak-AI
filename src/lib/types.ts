@@ -14,4 +14,7 @@ export interface ChatSession {
   messages: Message[]
   createdAt: Date
   updatedAt: Date
+  userMessageCount: number // track jumlah pesan user untuk limit
 }
+
+export const MESSAGE_LIMIT = 5 // limit pesan per session

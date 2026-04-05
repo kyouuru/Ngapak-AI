@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Menu, Sparkles, Code2, BookOpen, Lightbulb, ChefHat } from 'lucide-react'
+import { Menu, Sparkles, Code2, BookOpen, Lightbulb, ChefHat, AlertTriangle } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
@@ -9,13 +9,15 @@ import { TypingIndicator } from './TypingIndicator'
 import { ModelSelector } from './ModelSelector'
 import { SkillSelector } from './SkillSelector'
 import type { Message, ChatSession } from '@/lib/types'
+import { MESSAGE_LIMIT } from '@/lib/types'
 import { getSkillById } from '@/lib/skills'
+import { cn } from '@/lib/utils'
 
 const SUGGESTIONS = [
-  { icon: Code2,     text: 'Kepriwe carane gawe REST API nganggo Next.js?',       label: 'Coding',   skillId: 'code' },
-  { icon: BookOpen,  text: 'Jelasna machine learning nganggo basa sing gampang!', label: 'Belajar',  skillId: 'explain' },
-  { icon: ChefHat,   text: 'Tulung gaweake resep masakan khas Banyumas',          label: 'Resep',    skillId: 'general' },
-  { icon: Lightbulb, text: 'Apa bedane Python karo JavaScript kanggo pemula?',    label: 'Tips',     skillId: 'explain' },
+  { icon: Code2,     text: 'Kepriwe carane gawe REST API nganggo Next.js?',       label: 'Coding',  skillId: 'code' },
+  { icon: BookOpen,  text: 'Jelasna machine learning nganggo basa sing gampang!', label: 'Belajar', skillId: 'explain' },
+  { icon: ChefHat,   text: 'Tulung gaweake resep masakan khas Banyumas',          label: 'Resep',   skillId: 'general' },
+  { icon: Lightbulb, text: 'Apa bedane Python karo JavaScript kanggo pemula?',    label: 'Tips',    skillId: 'explain' },
 ]
 
 function generateId() {
@@ -23,7 +25,9 @@ function generateId() {
 }
 
 function generateTitle(content: string) {
-  return content.slice(0, 42) + (content.length > 42 ? '...' : '')
+  // Buat judul yang lebih bermakna dari konten pertama
+  const clean = content.trim().replace(/\s+/g, ' ')
+  return clean.slice(0, 40) + (clean.length > 40 ? '...' : '')
 }
 
 export function ChatPage() {
@@ -31,24 +35,30 @@ export function ChatPage() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [streamingContent, setStreamingContent] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)       // mobile overlay
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false) // desktop minimize
   const [model, setModel] = useState('claude-3-5-sonnet-20241022')
   const [skillId, setSkillId] = useState('general')
   const abortRef = useRef<AbortController | null>(null)
-  const bottomRef = useRef<HTMLDivElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const activeSession = sessions.find((s) => s.id === activeSessionId) ?? null
+  const userMsgCount = activeSession?.userMessageCount ?? 0
+  const remainingMessages = MESSAGE_LIMIT - userMsgCount
+  const isLimitReached = remainingMessages <= 0
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [])
 
-  useEffect(() => { scrollToBottom() }, [activeSession?.messages, streamingContent, isLoading, scrollToBottom])
+  useEffect(() => {
+    scrollToBottom()
+  }, [activeSession?.messages, streamingContent, isLoading, scrollToBottom])
 
+  // Load dari localStorage
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('ngapak-sessions-v2')
+      const saved = localStorage.getItem('ngapak-sessions-v3')
       if (saved) {
         const parsed = JSON.parse(saved) as ChatSession[]
         setSessions(parsed)
@@ -57,16 +67,21 @@ export function ChatPage() {
     } catch {}
   }, [])
 
+  // Save ke localStorage
   useEffect(() => {
     if (sessions.length > 0) {
-      localStorage.setItem('ngapak-sessions-v2', JSON.stringify(sessions))
+      localStorage.setItem('ngapak-sessions-v3', JSON.stringify(sessions))
     }
   }, [sessions])
 
   const createNewSession = useCallback(() => {
     const s: ChatSession = {
-      id: generateId(), title: 'Obrolan Anyar', messages: [],
-      createdAt: new Date(), updatedAt: new Date(),
+      id: generateId(),
+      title: 'Obrolan Anyar',
+      messages: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userMessageCount: 0,
     }
     setSessions((prev) => [s, ...prev])
     setActiveSessionId(s.id)
@@ -75,31 +90,61 @@ export function ChatPage() {
 
   const deleteSession = useCallback((id: string) => {
     setSessions((prev) => prev.filter((s) => s.id !== id))
-    setActiveSessionId((prev) => prev === id ? null : prev)
+    setActiveSessionId((prev) => (prev === id ? null : prev))
   }, [])
 
   const sendMessage = useCallback(async (content: string) => {
     if (isLoading) return
 
+    // Cek limit sebelum kirim
     let sessionId = activeSessionId
+    let currentCount = 0
+
+    if (sessionId) {
+      const cur = sessions.find((s) => s.id === sessionId)
+      currentCount = cur?.userMessageCount ?? 0
+      if (currentCount >= MESSAGE_LIMIT) return
+    }
+
+    // Buat session baru jika belum ada
     if (!sessionId) {
       const s: ChatSession = {
-        id: generateId(), title: generateTitle(content), messages: [],
-        createdAt: new Date(), updatedAt: new Date(),
+        id: generateId(),
+        title: generateTitle(content),
+        messages: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userMessageCount: 0,
       }
       setSessions((prev) => [s, ...prev])
       setActiveSessionId(s.id)
       sessionId = s.id
+      currentCount = 0
     }
 
-    const userMsg: Message = { id: generateId(), role: 'user', content, createdAt: new Date(), skillId }
+    const newCount = currentCount + 1
+    const userMsg: Message = {
+      id: generateId(),
+      role: 'user',
+      content,
+      createdAt: new Date(),
+      skillId,
+    }
 
-    setSessions((prev) => prev.map((s) => s.id === sessionId ? {
-      ...s,
-      messages: [...s.messages, userMsg],
-      title: s.messages.length === 0 ? generateTitle(content) : s.title,
-      updatedAt: new Date(),
-    } : s))
+    setSessions((prev) =>
+      prev.map((s) =>
+        s.id === sessionId
+          ? {
+              ...s,
+              messages: [...s.messages, userMsg],
+              // Set judul dari pesan pertama user
+              title: s.messages.length === 0 ? generateTitle(content) : s.title,
+              updatedAt: new Date(),
+              userMessageCount: newCount,
+            }
+          : s,
+      ),
+    )
 
     setIsLoading(true)
     setStreamingContent('')
@@ -109,8 +154,10 @@ export function ChatPage() {
 
     try {
       const currentSession = sessions.find((s) => s.id === sessionId)
-      const history = [...(currentSession?.messages ?? []), userMsg]
-        .map((m) => ({ role: m.role, content: m.content }))
+      const history = [...(currentSession?.messages ?? []), userMsg].map((m) => ({
+        role: m.role,
+        content: m.content,
+      }))
 
       const res = await fetch('/api/chat', {
         method: 'POST',
@@ -145,29 +192,48 @@ export function ChatPage() {
       }
 
       const assistantMsg: Message = {
-        id: generateId(), role: 'assistant', content: fullText, createdAt: new Date(), skillId,
+        id: generateId(),
+        role: 'assistant',
+        content: fullText,
+        createdAt: new Date(),
+        skillId,
       }
-      setSessions((prev) => prev.map((s) => s.id === sessionId
-        ? { ...s, messages: [...s.messages, assistantMsg], updatedAt: new Date() }
-        : s,
-      ))
+
+      setSessions((prev) =>
+        prev.map((s) =>
+          s.id === sessionId
+            ? { ...s, messages: [...s.messages, assistantMsg], updatedAt: new Date() }
+            : s,
+        ),
+      )
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
+        // Rollback count jika error
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === sessionId
+              ? { ...s, userMessageCount: Math.max(0, (s.userMessageCount ?? 1) - 1) }
+              : s,
+          ),
+        )
         const errMsg: Message = {
-          id: generateId(), role: 'assistant',
+          id: generateId(),
+          role: 'assistant',
           content: 'Waduh, ana masalah teknis. Coba maning ya, bro! 🙏',
           createdAt: new Date(),
         }
-        setSessions((prev) => prev.map((s) => s.id === sessionId
-          ? { ...s, messages: [...s.messages, errMsg] } : s,
-        ))
+        setSessions((prev) =>
+          prev.map((s) =>
+            s.id === sessionId ? { ...s, messages: [...s.messages, errMsg] } : s,
+          ),
+        )
       }
     } finally {
       setIsLoading(false)
       setStreamingContent('')
       abortRef.current = null
     }
-  }, [activeSessionId, isLoading, model, sessions])
+  }, [activeSessionId, isLoading, model, sessions, skillId])
 
   const messages = activeSession?.messages ?? []
   const isEmpty = messages.length === 0 && !isLoading
@@ -182,63 +248,90 @@ export function ChatPage() {
         onDeleteSession={deleteSession}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed((v) => !v)}
       />
 
       {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0 relative">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
         {/* Header */}
-        <header className="flex items-center justify-between px-4 py-3 border-b border-[#1e1e2a] bg-[#0a0a0f]/80 backdrop-blur-xl z-10">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="md:hidden p-2 rounded-xl text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5 transition-all"
-            >
-              <Menu size={18} />
-            </button>
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-[#1e1e2a] bg-[#0a0a0f]/80 backdrop-blur-xl z-10 flex-shrink-0">
+          {/* Mobile menu button */}
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="md:hidden p-2 rounded-xl text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5 transition-all flex-shrink-0"
+          >
+            <Menu size={18} />
+          </button>
+
+          {/* Session title */}
+          <div className="flex-1 min-w-0">
             {activeSession ? (
               <div>
-                <h2 className="text-sm font-medium text-[#f0f0f8] truncate max-w-[200px] md:max-w-sm">
+                <h2 className="text-sm font-medium text-[#f0f0f8] truncate">
                   {activeSession.title}
                 </h2>
                 <p className="text-[10px] text-[#5a5a72]">
                   {activeSession.messages.length} pesan
+                  {' · '}
+                  <span className={cn(
+                    remainingMessages <= 1 ? 'text-red-400' : remainingMessages <= 2 ? 'text-amber-400' : 'text-[#5a5a72]',
+                  )}>
+                    {isLimitReached ? 'Limit tercapai' : `${remainingMessages} pesan tersisa`}
+                  </span>
                 </p>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-                  <Sparkles size={12} className="text-white" />
+                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
+                  <Sparkles size={11} className="text-white" />
                 </div>
                 <span className="text-sm font-medium text-[#9090a8]">Ngapak AI</span>
               </div>
             )}
           </div>
-          <ModelSelector value={model} onChange={setModel} />
-          <SkillSelector value={skillId} onChange={setSkillId} />
+
+          {/* Controls — kanan */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <SkillSelector value={skillId} onChange={setSkillId} />
+            <ModelSelector value={model} onChange={setModel} />
+          </div>
         </header>
 
+        {/* Limit warning banner */}
+        {isLimitReached && (
+          <div className="flex items-center gap-2.5 px-4 py-2.5 bg-red-500/10 border-b border-red-500/20 flex-shrink-0">
+            <AlertTriangle size={14} className="text-red-400 flex-shrink-0" />
+            <p className="text-xs text-red-300">
+              Wis tekan limit {MESSAGE_LIMIT} pesan. Gawe obrolan anyar kanggo nerusake!
+            </p>
+            <button
+              onClick={createNewSession}
+              className="ml-auto text-xs px-3 py-1 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 transition-all flex-shrink-0"
+            >
+              + Obrolan Anyar
+            </button>
+          </div>
+        )}
+
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto" ref={bottomRef}>
+        <div className="flex-1 overflow-y-auto">
           {isEmpty ? (
-            /* Welcome */
             <div className="flex flex-col items-center justify-center h-full px-4 py-16 animate-fade-in">
-              {/* Hero */}
               <div className="relative mb-8">
                 <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-500 via-indigo-500 to-blue-500 flex items-center justify-center shadow-glow-md">
                   <Sparkles size={36} className="text-white" />
                 </div>
                 <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-violet-500 to-blue-500 blur-2xl opacity-20 -z-10 scale-150" />
               </div>
-
               <h2 className="text-3xl font-bold text-gradient mb-2">Ngapak AI</h2>
               <p className="text-[#9090a8] text-center max-w-sm mb-2 text-sm">
                 Halo! Inyong asisten AI saka tlatah Banyumas.
               </p>
               <p className="text-[#5a5a72] text-center max-w-sm mb-10 text-xs">
-                Takon apa bae — coding, belajar, resep, utawa sekedar ngobrol!
+                Saben sesi duwe limit <span className="text-[#7c6af7]">{MESSAGE_LIMIT} pesan</span>. Gawe sesi anyar yen wis entek!
               </p>
-
-              {/* Suggestions */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
                 {SUGGESTIONS.map((s) => {
                   const Icon = s.icon
@@ -247,8 +340,7 @@ export function ChatPage() {
                       key={s.text}
                       onClick={() => { setSkillId(s.skillId); sendMessage(s.text) }}
                       className="group flex items-start gap-3 p-4 rounded-2xl text-left transition-all duration-200
-                        bg-[#16161f] border border-[#2a2a3a] hover:border-[#7c6af7]/40 hover:bg-[#1a1a28]
-                        hover:shadow-glow-sm"
+                        bg-[#16161f] border border-[#2a2a3a] hover:border-[#7c6af7]/40 hover:bg-[#1a1a28] hover:shadow-glow-sm"
                     >
                       <div className="w-8 h-8 rounded-xl bg-[#7c6af7]/10 border border-[#7c6af7]/20 flex items-center justify-center flex-shrink-0 group-hover:bg-[#7c6af7]/20 transition-colors">
                         <Icon size={14} className="text-[#7c6af7]" />
@@ -285,7 +377,8 @@ export function ChatPage() {
           onSend={sendMessage}
           isLoading={isLoading}
           onStop={() => abortRef.current?.abort()}
-          placeholder={getSkillById(skillId).placeholder}
+          placeholder={isLimitReached ? 'Limit tercapai. Gawe obrolan anyar!' : getSkillById(skillId).placeholder}
+          disabled={isLimitReached}
         />
       </div>
     </div>

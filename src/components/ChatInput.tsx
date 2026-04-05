@@ -9,9 +9,10 @@ interface ChatInputProps {
   isLoading: boolean
   onStop: () => void
   placeholder?: string
+  disabled?: boolean
 }
 
-export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Takon apa bae karo Ngapak AI...' }: ChatInputProps) {
+export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Takon apa bae karo Ngapak AI...', disabled = false }: ChatInputProps) {
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -24,7 +25,7 @@ export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Takon apa 
 
   const handleSubmit = () => {
     const trimmed = input.trim()
-    if (!trimmed || isLoading) return
+    if (!trimmed || isLoading || disabled) return
     onSend(trimmed)
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
@@ -37,15 +38,18 @@ export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Takon apa 
     }
   }
 
-  const canSend = input.trim().length > 0 && !isLoading
+  const canSend = input.trim().length > 0 && !isLoading && !disabled
 
   return (
     <div className="px-4 pb-4 pt-2">
       <div className="max-w-3xl mx-auto">
         <div className={cn(
           'relative rounded-2xl border transition-all duration-200',
-          'bg-[#16161f] border-[#2a2a3a]',
-          input.length > 0 ? 'border-[#7c6af7]/40 shadow-glow-sm' : 'hover:border-[#3a3a4a]',
+          disabled
+            ? 'bg-[#111118] border-[#1e1e2a] opacity-60 cursor-not-allowed'
+            : input.length > 0
+            ? 'bg-[#16161f] border-[#7c6af7]/40 shadow-glow-sm'
+            : 'bg-[#16161f] border-[#2a2a3a] hover:border-[#3a3a4a]',
         )}>
           <textarea
             ref={textareaRef}
@@ -53,9 +57,10 @@ export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Takon apa 
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
+            disabled={disabled}
             rows={1}
             className="w-full bg-transparent text-[#f0f0f8] placeholder-[#5a5a72] text-sm leading-relaxed
-              resize-none outline-none px-4 pt-3.5 pb-12 min-h-[52px] max-h-[180px]"
+              resize-none outline-none px-4 pt-3.5 pb-12 min-h-[52px] max-h-[180px] disabled:cursor-not-allowed"
           />
 
           {/* Bottom bar */}
