@@ -54,9 +54,42 @@ Kowe pinter ing macem-macem bidang:
 - Untuk penjelasan panjang: gunakan heading dan bullet points
 - Untuk jawaban singkat: langsung ke poin tanpa basa-basi berlebihan`
 
+const FREE_MODELS = [
+  'deepseek/deepseek-chat-v3-0324:free',
+  'google/gemini-2.0-flash-001',
+]
+
+async function callOpenRouter(
+  apiKey: string,
+  model: string,
+  systemPrompt: string,
+  messages: { role: string; content: string }[],
+): Promise<Response> {
+  return fetch(`${OPENROUTER_BASE}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://ngapak-ai.vercel.app',
+      'X-Title': 'Ngapak AI',
+    },
+    body: JSON.stringify({
+      model,
+      stream: true,
+      max_tokens: 8096,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...messages,
+      ],
+    }),
+  })
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { messages, model = 'anthropic/claude-3.5-sonnet', skillId = 'general' } = await req.json()
+    const { messages, model: requestedModel, skillId = 'general' } = await req.json()
+    // Selalu pakai free model sebagai default — DeepSeek V3 dulu, fallback Gemini
+    const model = requestedModel ?? FREE_MODELS[0]
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(JSON.stringify({ error: 'Messages are required' }), {
@@ -75,28 +108,19 @@ export async function POST(req: NextRequest) {
 
     const skill = getSkillById(skillId)
     const systemPrompt = BASE_SYSTEM_PROMPT + (skill.systemPromptAddendum || '')
+    const formattedMessages = messages.map((m: { role: string; content: string }) => ({
+      role: m.role,
+      content: m.content,
+    }))
 
-    const response = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'https://ngapak-ai.vercel.app',
-        'X-Title': 'Ngapak AI',
-      },
-      body: JSON.stringify({
-        model,
-        stream: true,
-        max_tokens: 8096,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages.map((m: { role: string; content: string }) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        ],
-      }),
-    })
+    // Coba model yang diminta, fallback ke Gemini jika gagal
+    let response = await callOpenRouter(apiKey, model, systemPrompt, formattedMessages)
+
+    // Jika model utama error (rate limit, unavailable, dll) → fallback ke Gemini
+    if (!response.ok && model !== FREE_MODELS[1]) {
+      console.warn(`Model ${model} failed (${response.status}), falling back to ${FREE_MODELS[1]}`)
+      response = await callOpenRouter(apiKey, FREE_MODELS[1]!, systemPrompt, formattedMessages)
+    }
 
     if (!response.ok) {
       const err = await response.text()

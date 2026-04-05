@@ -37,7 +37,7 @@ export function ChatPage() {
   const [streamingContent, setStreamingContent] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)       // mobile overlay
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false) // desktop minimize
-  const [model, setModel] = useState('claude-3-5-sonnet-20241022')
+  const [model, setModel] = useState('deepseek/deepseek-chat-v3-0324:free')
   const [skillId, setSkillId] = useState('general')
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
