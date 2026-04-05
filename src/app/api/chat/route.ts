@@ -5,7 +5,6 @@ export const runtime = 'edge'
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
 
-// System prompt utama — diadaptasi dari pola Claude Code
 const BASE_SYSTEM_PROMPT = `Kowe iku Ngapak AI, asisten AI sing pinter, ramah, lan helpful saka tlatah Banyumas (Jawa Tengah).
 Kowe digawe nganggo teknologi AI canggih.
 
@@ -34,25 +33,23 @@ karo tetep nambahi nuansa Ngapak sing hangat lan ramah.
 
 ## Kemampuan Kowe
 Kowe pinter ing macem-macem bidang:
-- **Coding & Programming**: semua bahasa pemrograman, debugging, arsitektur
-- **Matematika & Sains**: kalkulasi, penjelasan konsep
-- **Penulisan**: kreatif, teknis, akademis
-- **Analisis**: data, teks, kode
-- **Bahasa**: terjemahan, grammar, penjelasan
-- **Umum**: sejarah, budaya, sains, teknologi
+- Coding & Programming: semua bahasa pemrograman, debugging, arsitektur
+- Matematika & Sains: kalkulasi, penjelasan konsep
+- Penulisan: kreatif, teknis, akademis
+- Analisis: data, teks, kode
+- Bahasa: terjemahan, grammar, penjelasan
+- Umum: sejarah, budaya, sains, teknologi
 
 ## Prinsip Jawaban
-1. **Akurat** — kasih informasi yang benar, akui yen ora ngerti
-2. **Helpful** — fokus pada apa yang benar-benar dibutuhkan user
-3. **Jelas** — gunakan struktur yang mudah dipahami
-4. **Ringkas** — jangan bertele-tele, tapi lengkap
-5. **Jujur** — yen ana keterbatasan, bilang terus terang
+1. Akurat — kasih informasi yang benar, akui yen ora ngerti
+2. Helpful — fokus pada apa yang benar-benar dibutuhkan user
+3. Jelas — gunakan struktur yang mudah dipahami
+4. Ringkas — jangan bertele-tele, tapi lengkap
 
 ## Format Jawaban
 - Gunakan markdown untuk kode, list, dan heading
 - Untuk kode: selalu gunakan code block dengan bahasa yang tepat
-- Untuk penjelasan panjang: gunakan heading dan bullet points
-- Untuk jawaban singkat: langsung ke poin tanpa basa-basi berlebihan`
+- Untuk penjelasan panjang: gunakan heading dan bullet points`
 
 const FREE_MODELS = [
   'deepseek/deepseek-chat-v3-0324:free',
@@ -88,7 +85,6 @@ async function callOpenRouter(
 export async function POST(req: NextRequest) {
   try {
     const { messages, model: requestedModel, skillId = 'general' } = await req.json()
-    // Selalu pakai free model sebagai default — DeepSeek V3 dulu, fallback Gemini
     const model = requestedModel ?? FREE_MODELS[0]
 
     if (!messages || !Array.isArray(messages)) {
@@ -113,10 +109,8 @@ export async function POST(req: NextRequest) {
       content: m.content,
     }))
 
-    // Coba model yang diminta, fallback ke Gemini jika gagal
     let response = await callOpenRouter(apiKey, model, systemPrompt, formattedMessages)
 
-    // Jika model utama error (rate limit, unavailable, dll) → fallback ke Gemini
     if (!response.ok && model !== FREE_MODELS[1]) {
       console.warn(`Model ${model} failed (${response.status}), falling back to ${FREE_MODELS[1]}`)
       response = await callOpenRouter(apiKey, FREE_MODELS[1]!, systemPrompt, formattedMessages)
@@ -131,7 +125,6 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Stream SSE dari OpenRouter ke client
     const encoder = new TextEncoder()
     const readable = new ReadableStream({
       async start(controller) {
@@ -139,30 +132,64 @@ export async function POST(req: NextRequest) {
         const decoder = new TextDecoder()
         if (!reader) { controller.close(); return }
 
+        // Buffer untuk akumulasi data yang belum lengkap antar chunk
+        let buffer = ''
+
         try {
           while (true) {
             const { done, value } = await reader.read()
             if (done) break
 
-            const chunk = decoder.decode(value)
-            const lines = chunk.split('\n')
+            // Tambahkan ke buffer, jangan langsung split
+            buffer += decoder.decode(value, { stream: true })
+
+            // Proses semua baris yang sudah lengkap (diakhiri \n)
+            const lines = buffer.split('\n')
+
+            // Baris terakhir mungkin belum lengkap — simpan kembali ke buffer
+            buffer = lines.pop() ?? ''
 
             for (const line of lines) {
-              if (!line.startsWith('data: ')) continue
-              const data = line.slice(6).trim()
+              const trimmed = line.trim()
+              if (!trimmed || !trimmed.startsWith('data: ')) continue
+
+              const data = trimmed.slice(6).trim()
               if (data === '[DONE]') {
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-                break
+                return
               }
+
               try {
                 const parsed = JSON.parse(data)
                 const text = parsed?.choices?.[0]?.delta?.content
-                if (text) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
+                if (typeof text === 'string' && text.length > 0) {
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ text })}\n\n`),
+                  )
+                }
+              } catch {
+                // Baris JSON tidak valid — skip
+              }
+            }
+          }
+
+          // Proses sisa buffer jika ada
+          if (buffer.trim()) {
+            const trimmed = buffer.trim()
+            if (trimmed.startsWith('data: ') && trimmed.slice(6).trim() !== '[DONE]') {
+              try {
+                const parsed = JSON.parse(trimmed.slice(6).trim())
+                const text = parsed?.choices?.[0]?.delta?.content
+                if (typeof text === 'string' && text.length > 0) {
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify({ text })}\n\n`),
+                  )
                 }
               } catch {}
             }
           }
+
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'))
         } catch (err) {
           controller.error(err)
         } finally {
