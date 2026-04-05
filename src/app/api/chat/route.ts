@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const { messages, model: requestedModel, skillId = 'general', langId = 'id' } = await req.json()
+    const { messages, model: requestedModel, skillId = 'general', langId = 'id', webSearch = false } = await req.json()
     const model = requestedModel ?? FREE_MODELS[0]
 
     if (!messages || !Array.isArray(messages)) {
@@ -111,7 +111,10 @@ export async function POST(req: NextRequest) {
 
     const skill = getSkillById(skillId)
     const language = getLanguageById(langId)
-    const systemPrompt = BASE_SYSTEM_PROMPT + language.systemAddendum + (skill.systemPromptAddendum || '')
+    const webSearchNote = webSearch
+      ? '\n\n## WEB SEARCH MODE\nUser mengaktifkan web search. Jika pertanyaan membutuhkan info terkini, beritahu user bahwa kamu tidak bisa browsing secara langsung, tapi berikan jawaban terbaik berdasarkan pengetahuanmu dan sarankan user untuk verifikasi di sumber terpercaya.'
+      : ''
+    const systemPrompt = BASE_SYSTEM_PROMPT + language.systemAddendum + (skill.systemPromptAddendum || '') + webSearchNote
     const formattedMessages = messages.map((m: { role: string; content: string }) => ({
       role: m.role,
       content: m.content,

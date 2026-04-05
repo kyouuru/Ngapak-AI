@@ -45,6 +45,7 @@ export function ChatPage() {
   const [langId, setLangId] = useState('id')
   const [limitUsed, setLimitUsed] = useState(0)
   const [showLimitModal, setShowLimitModal] = useState(false)
+  const [webSearch, setWebSearch] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -97,7 +98,7 @@ export function ChatPage() {
     setActiveSessionId((prev) => prev === id ? null : prev)
   }, [])
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, attachment?: { name: string; content: string; type: string }) => {
     if (isLoading) return
     if (isLimitReached) { setShowLimitModal(true); return }
 
@@ -112,7 +113,19 @@ export function ChatPage() {
       sessionId = s.id
     }
 
-    const userMsg: Message = { id: generateId(), role: 'user', content, createdAt: new Date(), skillId }
+    // Buat konten pesan dengan attachment jika ada
+    let fullContent = content
+    if (attachment) {
+      if (attachment.type.startsWith('image/')) {
+        fullContent = content ? `${content}\n\n[Gambar: ${attachment.name}]` : `[Gambar: ${attachment.name}]`
+      } else {
+        fullContent = content
+          ? `${content}\n\n**File: ${attachment.name}**\n\`\`\`\n${attachment.content.slice(0, 3000)}\n\`\`\``
+          : `**File: ${attachment.name}**\n\`\`\`\n${attachment.content.slice(0, 3000)}\n\`\`\``
+      }
+    }
+
+    const userMsg: Message = { id: generateId(), role: 'user', content: fullContent, createdAt: new Date(), skillId }
 
     setSessions((prev) => prev.map((s) => s.id === sessionId ? {
       ...s,
@@ -135,7 +148,7 @@ export function ChatPage() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history, model, skillId, langId }),
+        body: JSON.stringify({ messages: history, model, skillId, langId, webSearch }),
         signal: controller.signal,
       })
 
@@ -200,7 +213,7 @@ export function ChatPage() {
       setStreamingContent('')
       abortRef.current = null
     }
-  }, [activeSessionId, isLoading, isLimitReached, limitMax, model, sessions, skillId, langId])
+  }, [activeSessionId, isLoading, isLimitReached, limitMax, model, sessions, skillId, langId, webSearch])
 
   const messages = activeSession?.messages ?? []
   const isEmpty = messages.length === 0 && !isLoading
@@ -357,6 +370,8 @@ export function ChatPage() {
             : lang.uiLabel.placeholder}
           disabled={isLimitReached}
           footer={lang.uiLabel.footer}
+          webSearchEnabled={webSearch}
+          onToggleWebSearch={() => setWebSearch((v) => !v)}
         />
       </div>
     </div>

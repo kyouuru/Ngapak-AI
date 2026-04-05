@@ -1,21 +1,32 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ArrowUp, Square, Paperclip, Globe } from 'lucide-react'
+import { ArrowUp, Square, Paperclip, Globe, X, Image as ImageIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface ChatInputProps {
-  onSend: (message: string) => void
+  onSend: (message: string, attachment?: { name: string; content: string; type: string }) => void
   isLoading: boolean
   onStop: () => void
   placeholder?: string
   disabled?: boolean
   footer?: string
+  webSearchEnabled?: boolean
+  onToggleWebSearch?: () => void
 }
 
-export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Ketik pesan kamu...', disabled = false, footer }: ChatInputProps) {
+export function ChatInput({
+  onSend, isLoading, onStop,
+  placeholder = 'Ketik pesan kamu...',
+  disabled = false,
+  footer,
+  webSearchEnabled = false,
+  onToggleWebSearch,
+}: ChatInputProps) {
   const [input, setInput] = useState('')
+  const [attachment, setAttachment] = useState<{ name: string; content: string; type: string } | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -26,9 +37,10 @@ export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Ketik pesa
 
   const handleSubmit = () => {
     const trimmed = input.trim()
-    if (!trimmed || isLoading || disabled) return
-    onSend(trimmed)
+    if ((!trimmed && !attachment) || isLoading || disabled) return
+    onSend(trimmed || (attachment ? `[File: ${attachment.name}]` : ''), attachment ?? undefined)
     setInput('')
+    setAttachment(null)
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
   }
 
@@ -39,7 +51,34 @@ export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Ketik pesa
     }
   }
 
-  const canSend = input.trim().length > 0 && !isLoading && !disabled
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Limit 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File terlalu besar. Maksimal 5MB.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const content = ev.target?.result as string
+      setAttachment({ name: file.name, content, type: file.type })
+    }
+
+    if (file.type.startsWith('image/')) {
+      reader.readAsDataURL(file)
+    } else {
+      reader.readAsText(file)
+    }
+
+    // Reset input agar bisa pilih file yang sama lagi
+    e.target.value = ''
+  }
+
+  const canSend = (input.trim().length > 0 || !!attachment) && !isLoading && !disabled
+  const isImage = attachment?.type.startsWith('image/')
 
   return (
     <div className="px-4 pb-4 pt-2">
@@ -48,10 +87,32 @@ export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Ketik pesa
           'relative rounded-2xl border transition-all duration-200',
           disabled
             ? 'bg-[#111118] border-[#1e1e2a] opacity-60 cursor-not-allowed'
-            : input.length > 0
+            : (input.length > 0 || attachment)
             ? 'bg-[#16161f] border-[#7c6af7]/40 shadow-glow-sm'
             : 'bg-[#16161f] border-[#2a2a3a] hover:border-[#3a3a4a]',
         )}>
+
+          {/* Attachment preview */}
+          {attachment && (
+            <div className="flex items-center gap-2 px-4 pt-3">
+              <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-[#1a1a24] border border-[#2a2a3a] max-w-xs">
+                {isImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={attachment.content} alt={attachment.name} className="w-8 h-8 rounded object-cover flex-shrink-0" />
+                ) : (
+                  <ImageIcon size={14} className="text-[#7c6af7] flex-shrink-0" />
+                )}
+                <span className="text-xs text-[#9090a8] truncate max-w-[150px]">{attachment.name}</span>
+                <button
+                  onClick={() => setAttachment(null)}
+                  className="text-[#5a5a72] hover:text-red-400 transition-colors flex-shrink-0 ml-1"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            </div>
+          )}
+
           <textarea
             ref={textareaRef}
             value={input}
@@ -67,16 +128,47 @@ export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Ketik pesa
           {/* Bottom bar */}
           <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 pb-3">
             <div className="flex items-center gap-1">
-              <button className="p-1.5 rounded-lg text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5 transition-all" title="Lampiran (segera hadir)">
+              {/* Upload file */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.txt,.md,.js,.ts,.py,.json,.csv,.html,.css"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={disabled}
+                className={cn(
+                  'p-1.5 rounded-lg transition-all',
+                  attachment
+                    ? 'text-[#7c6af7] bg-[#7c6af7]/10'
+                    : 'text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5',
+                )}
+                title="Upload gambar atau file teks"
+              >
                 <Paperclip size={15} />
               </button>
-              <button className="p-1.5 rounded-lg text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5 transition-all" title="Pencarian web (segera hadir)">
-                <Globe size={15} />
+
+              {/* Web search toggle */}
+              <button
+                onClick={onToggleWebSearch}
+                disabled={disabled}
+                className={cn(
+                  'flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium transition-all',
+                  webSearchEnabled
+                    ? 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20'
+                    : 'text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5',
+                )}
+                title={webSearchEnabled ? 'Web search aktif — klik untuk nonaktifkan' : 'Aktifkan web search'}
+              >
+                <Globe size={13} />
+                {webSearchEnabled && <span>Web</span>}
               </button>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-[#3a3a52]">
+              <span className="text-[10px] text-[#3a3a52] hidden sm:block">
                 {isLoading ? '' : 'Enter kirim · Shift+Enter baris baru'}
               </span>
               <button
