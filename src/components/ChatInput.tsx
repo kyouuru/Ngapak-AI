@@ -10,9 +10,10 @@ interface ChatInputProps {
   onStop: () => void
   placeholder?: string
   disabled?: boolean
+  footer?: string
 }
 
-export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Takon apa bae karo Ngapak AI...', disabled = false }: ChatInputProps) {
+export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Ketik pesan kamu...', disabled = false, footer }: ChatInputProps) {
   const [input, setInput] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -97,7 +98,7 @@ export function ChatInput({ onSend, isLoading, onStop, placeholder = 'Takon apa 
         </div>
 
         <p className="text-center text-[10px] text-[#3a3a52] mt-2">
-          Ngapak AI bisa gawe kesalahan. Priksa informasi penting ya!
+          {footer ?? 'Ngapak AI bisa membuat kesalahan. Periksa informasi penting ya!'}
         </p>
       </div>
     </div>

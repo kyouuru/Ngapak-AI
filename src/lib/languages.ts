@@ -3,6 +3,12 @@ export interface Language {
   name: string
   flag: string
   greeting: string
+  uiLabel: {
+    you: string
+    ai: string
+    placeholder: string
+    footer: string
+  }
   systemAddendum: string
 }
 
@@ -12,93 +18,97 @@ export const LANGUAGES: Language[] = [
     name: 'Indonesia',
     flag: '🇮🇩',
     greeting: 'Halo!',
+    uiLabel: { you: 'Kamu', ai: 'Ngapak AI', placeholder: 'Ketik pesan kamu...', footer: 'Ngapak AI bisa membuat kesalahan. Periksa informasi penting ya!' },
     systemAddendum: `
-## BAHASA UTAMA: INDONESIA
-Kowe WAJIB menjawab dalam Bahasa Indonesia yang baik dan benar.
-Gunakan sapaan hangat khas Ngapak di awal seperti "Halo!" atau "Siap, inyong bantu ya!".
-Tetap gunakan sesekali kata Ngapak yang hangat seperti "inyong", "ya", "lah", "bro" di akhir kalimat.`,
+## BAHASA WAJIB: INDONESIA
+Kamu HARUS menjawab dalam Bahasa Indonesia yang baik, benar, dan ramah.
+JANGAN gunakan kata-kata Ngapak seperti "inyong", "kowe", "kepriwe" dalam jawaban.
+Gunakan sapaan seperti "Halo!", "Hai!", "Tentu!", "Siap!".
+Boleh sesekali tambahkan "ya", "nih", "dong" agar terasa hangat.`,
   },
   {
     id: 'ngapak',
     name: 'Ngapak',
     flag: '🗺️',
     greeting: 'Halo kowe!',
+    uiLabel: { you: 'Kowe', ai: 'Ngapak AI', placeholder: 'Takon apa bae karo Ngapak AI...', footer: 'Ngapak AI bisa gawe kesalahan. Priksa informasi penting ya!' },
     systemAddendum: `
-## BAHASA UTAMA: NGAPAK BANYUMAS
+## BAHASA WAJIB: NGAPAK BANYUMAS
 Kowe WAJIB menjawab nganggo Basa Ngapak Banyumas sing khas.
-Gunakake tembung-tembung: inyong, kowe, kepriwe, ngapa, ya apa, bae, maning, lah, wis, durung, arep, ora, nggih, mangga.
-Contoh: "Halo kowe! Inyong siap mbantu ya!" atau "Kepriwe, ana sing bisa inyong bantu?"`,
+Gunakake tembung: inyong, kowe, kepriwe, ngapa, ya apa, bae, maning, lah, wis, durung, arep, ora.
+Contoh sapaan: "Halo kowe! Inyong siap mbantu ya!"`,
   },
   {
     id: 'sunda',
     name: 'Sunda',
     flag: '🌺',
     greeting: 'Halo!',
+    uiLabel: { you: 'Anjeun', ai: 'Ngapak AI', placeholder: 'Tulis pesen anjeun...', footer: 'Ngapak AI tiasa lepat. Pariksa inpormasi penting nya!' },
     systemAddendum: `
-## BAHASA UTAMA: SUNDA
-Kowe WAJIB menjawab nganggo Basa Sunda nu alus.
-Gunakake kecap-kecap Sunda: abdi, anjeun, kumaha, naon, enya, henteu, mangga, nuhun, punten, atuh, mah, teh, nya.
-Contoh: "Halo! Abdi siap ngabantosan anjeun nya!" atau "Kumaha, aya nu bisa abdi bantosan?"
-Tetap ramah dan hangat khas Sunda.`,
+## BAHASA WAJIB: SUNDA
+Anjeun KEDAH ngajawab nganggo Basa Sunda nu alus sareng ramah.
+ULAH nganggo kecap Ngapak. Gunakake: abdi, anjeun, kumaha, naon, enya, henteu, mangga, nuhun, punten, atuh, mah, teh, nya.
+Conto: "Halo! Abdi siap ngabantosan anjeun nya!"`,
   },
   {
     id: 'minang',
     name: 'Minang',
     flag: '🏔️',
     greeting: 'Halo!',
+    uiLabel: { you: 'Waang', ai: 'Ngapak AI', placeholder: 'Tulih pesan waang...', footer: 'Ngapak AI bisa salah. Pareso informasi nan pantiang yo!' },
     systemAddendum: `
-## BAHASA UTAMA: MINANG
-Kowe WAJIB menjawab nganggo Bahaso Minang nan elok.
-Gunakake kato-kato: ambo, waang/uda/uni, baa, apo, iyo, indak, manga, tarimo kasih, maaf, lah, ko, tu, den.
-Contoh: "Halo! Ambo siap mambantu waang yo!" atau "Baa, ado nan bisa ambo bantu?"
-Tetap hangat dan ramah khas Minangkabau.`,
+## BAHASA WAJIB: MINANG
+Ambo HARUS manjawab jo Bahaso Minang nan elok.
+JANGAN pakai kata Ngapak. Gunakake: ambo, waang/uda/uni, baa, apo, iyo, indak, tarimo kasih, lah, ko, tu, den.
+Conto: "Halo! Ambo siap mambantu waang yo!"`,
   },
   {
     id: 'jawa',
     name: 'Jawa',
     flag: '🏛️',
     greeting: 'Sugeng rawuh!',
+    uiLabel: { you: 'Sampeyan', ai: 'Ngapak AI', placeholder: 'Tulis pesen sampeyan...', footer: 'Ngapak AI saged lepat. Priksa informasi penting nggih!' },
     systemAddendum: `
-## BAHASA UTAMA: JAWA
-Kowe WAJIB menjawab nganggo Basa Jawa sing sopan (ngoko alus).
-Gunakake tembung: aku/kula, kowe/sampeyan, piye, opo, iya, ora, matur nuwun, mangga, lho, kok, to, je, ta.
-Contoh: "Sugeng rawuh! Kula siap mbantu sampeyan nggih!" atau "Piye, wonten ingkang saged kula bantu?"
-Tetap sopan dan hangat khas Jawa.`,
+## BAHASA WAJIB: JAWA
+Kula KEDAH mangsuli nganggo Basa Jawa sing sopan (ngoko alus).
+SAMPUN nganggo tembung Ngapak. Gunakake: kula, sampeyan, piye, opo, iya, ora, matur nuwun, mangga, lho, to, nggih.
+Conto: "Sugeng rawuh! Kula siap mbantu sampeyan nggih!"`,
   },
   {
     id: 'betawi',
     name: 'Betawi',
     flag: '🦁',
     greeting: 'Halo nih!',
+    uiLabel: { you: 'Ente', ai: 'Ngapak AI', placeholder: 'Tulis pesan ente...', footer: 'Ngapak AI bisa salah nih. Cek informasi penting deh!' },
     systemAddendum: `
-## BAHASA UTAMA: BETAWI
-Kowe WAJIB menjawab nganggo Bahasa Betawi yang khas.
-Gunakake kata-kata: aye/gue, ente/lu, gimane, apaan, iye, kagak, makasih, nih, deh, dong, sih, noh, tuh, emang.
-Contoh: "Halo nih! Aye siap bantu ente deh!" atau "Gimane, ade yang bisa aye bantu nih?"
-Tetap ceria dan khas Betawi.`,
+## BAHASA WAJIB: BETAWI
+Aye HARUS ngejawab pake Bahasa Betawi yang khas.
+JANGAN pake kata Ngapak. Pake: aye/gue, ente/lu, gimane, apaan, iye, kagak, makasih, nih, deh, dong, sih, noh, tuh, emang.
+Contoh: "Halo nih! Aye siap bantu ente deh!"`,
   },
   {
     id: 'madura',
     name: 'Madura',
     flag: '🐂',
     greeting: 'Halo!',
+    uiLabel: { you: "Ba'na", ai: 'Ngapak AI', placeholder: "Tullis pesan ba'na...", footer: "Ngapak AI bisa salah. Pareksa informasi se penting ya!" },
     systemAddendum: `
-## BAHASA UTAMA: MADURA
-Kowe WAJIB menjawab nganggo Bahasa Madura sing apik.
-Gunakake kata-kata: sengko/kaula, ba'na/sampeyan, keya, aapa, iya, ta', tarema kasih, mangga, la', bik, se.
-Contoh: "Halo! Kaula siap abanto ba'na ya!" atau "Aapa se bisa kaula abanto?"
-Tetap ramah dan hangat khas Madura.`,
+## BAHASA WAJIB: MADURA
+Kaula HARUS ngajheb nganguy Bahasa Madura se apik.
+JANGAN pake kata Ngapak. Pake: kaula, ba'na/sampeyan, keya, aapa, iya, ta', tarema kasih, la', bik, se.
+Conto: "Halo! Kaula siap abanto ba'na ya!"`,
   },
   {
     id: 'english',
     name: 'English',
     flag: '🇬🇧',
     greeting: 'Hello!',
+    uiLabel: { you: 'You', ai: 'Ngapak AI', placeholder: 'Type your message...', footer: 'Ngapak AI can make mistakes. Check important info!' },
     systemAddendum: `
-## PRIMARY LANGUAGE: ENGLISH
-You MUST respond in clear, friendly English.
-Add a small Ngapak touch occasionally like "Inyong (that's me) is here to help!" or end with "Hope that helps, bro!".
-Keep it warm, helpful and professional.`,
+## REQUIRED LANGUAGE: ENGLISH
+You MUST respond in clear, friendly English only.
+DO NOT use Ngapak words. Use natural English with a warm, helpful tone.
+You may occasionally add a fun touch like "Hope that helps!" or "Let me know if you need more!".`,
   },
 ]
 

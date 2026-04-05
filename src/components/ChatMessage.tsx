@@ -7,16 +7,19 @@ import type { Message } from '@/lib/types'
 import { Copy, Check, User, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { getSkillById } from '@/lib/skills'
+import { getLanguageById } from '@/lib/languages'
 
 interface ChatMessageProps {
   message: Message
   isStreaming?: boolean
+  langId?: string
 }
 
-export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
+export function ChatMessage({ message, isStreaming, langId = 'id' }: ChatMessageProps) {
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
   const skill = message.skillId ? getSkillById(message.skillId) : null
+  const lang = getLanguageById(langId)
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content)
@@ -49,7 +52,7 @@ export function ChatMessage({ message, isStreaming }: ChatMessageProps) {
       <div className={cn('flex flex-col gap-1 max-w-[80%]', isUser && 'items-end')}>
         <div className="flex items-center gap-2 px-1">
           <span className="text-[11px] font-medium text-[#5a5a72]">
-            {isUser ? 'Kowe' : 'Ngapak AI'}
+            {isUser ? lang.uiLabel.you : lang.uiLabel.ai}
           </span>
           {skill && skill.id !== 'general' && (
             <span className={cn('text-[9px] px-1.5 py-0.5 rounded-md border font-medium', skill.color)}>

@@ -335,11 +335,12 @@ export function ChatPage() {
             </div>
           ) : (
             <div className="max-w-3xl mx-auto py-4">
-              {messages.map((msg) => <ChatMessage key={msg.id} message={msg} />)}
+              {messages.map((msg) => <ChatMessage key={msg.id} message={msg} langId={langId} />)}
               {isLoading && streamingContent ? (
                 <ChatMessage
                   message={{ id: 'streaming', role: 'assistant', content: streamingContent, createdAt: new Date() }}
                   isStreaming
+                  langId={langId}
                 />
               ) : isLoading ? <TypingIndicator /> : null}
               <div ref={messagesEndRef} className="h-4" />
@@ -353,8 +354,9 @@ export function ChatPage() {
           onStop={() => abortRef.current?.abort()}
           placeholder={isLimitReached
             ? (isLoggedIn ? 'Limit harian habis. Balik sesuk!' : 'Login Google kanggo lanjut chat!')
-            : getSkillById(skillId).placeholder}
+            : lang.uiLabel.placeholder}
           disabled={isLimitReached}
+          footer={lang.uiLabel.footer}
         />
       </div>
     </div>
