@@ -1,8 +1,16 @@
 'use client'
 
-import { ChevronDown, Zap, Brain, Cpu, Flame } from 'lucide-react'
+import { ChevronDown, Zap, Brain, Cpu, Flame, Lock } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
+import { PAID_MODELS } from '@/lib/plans'
+
+interface ModelSelectorProps {
+  value: string
+  onChange: (model: string) => void
+  userPlan?: string
+  onPaidModelClick?: (modelName: string) => void
+}
 
 const MODELS = [
   {
@@ -52,11 +60,12 @@ interface ModelSelectorProps {
   onChange: (model: string) => void
 }
 
-export function ModelSelector({ value, onChange }: ModelSelectorProps) {
+export function ModelSelector({ value, onChange, userPlan = 'free', onPaidModelClick }: ModelSelectorProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const selected = MODELS.find((m) => m.id === value) ?? MODELS[0]!
   const Icon = selected.icon
+  const isPaidModel = PAID_MODELS.includes(value)
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -66,6 +75,17 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  const handleModelClick = (model: typeof MODELS[0]) => {
+    const requiresPaid = PAID_MODELS.includes(model.id)
+    if (requiresPaid && userPlan === 'free') {
+      onPaidModelClick?.(model.name)
+      setOpen(false)
+      return
+    }
+    onChange(model.id)
+    setOpen(false)
+  }
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -73,7 +93,7 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
         className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all
           bg-[#1a1a24] border border-[#2a2a3a] text-[#9090a8] hover:text-[#f0f0f8] hover:border-[#3a3a4a]"
       >
-        <Icon size={12} className="text-[#7c6af7]" />
+        <Icon size={12} className={isPaidModel && userPlan === 'free' ? 'text-amber-400' : 'text-[#7c6af7]'} />
         <span className="hidden sm:inline">{selected.name}</span>
         <ChevronDown size={11} className={cn('transition-transform text-[#5a5a72]', open && 'rotate-180')} />
       </button>
@@ -88,10 +108,12 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
             {MODELS.map((model) => {
               const MIcon = model.icon
               const isActive = value === model.id
+              const requiresPaid = PAID_MODELS.includes(model.id)
+              const isLocked = requiresPaid && userPlan === 'free'
               return (
                 <button
                   key={model.id}
-                  onClick={() => { onChange(model.id); setOpen(false) }}
+                  onClick={() => handleModelClick(model)}
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left',
                     isActive
@@ -113,6 +135,7 @@ export function ModelSelector({ value, onChange }: ModelSelectorProps) {
                       <span className={cn('text-[10px] px-1.5 py-0.5 rounded-md border font-medium', model.badgeColor)}>
                         {model.badge}
                       </span>
+                      {isLocked && <Lock size={10} className="text-amber-400" />}
                     </div>
                     <p className="text-[11px] text-[#5a5a72] mt-0.5">{model.desc}</p>
                   </div>

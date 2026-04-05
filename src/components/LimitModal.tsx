@@ -1,29 +1,23 @@
 'use client'
 
 import { signIn } from 'next-auth/react'
-import { X, Zap, Lock, CheckCircle } from 'lucide-react'
+import { X, Zap, CheckCircle } from 'lucide-react'
+import type { UIStrings } from '@/lib/i18n'
 
 interface LimitModalProps {
   isLoggedIn: boolean
   onClose: () => void
+  t: UIStrings
 }
 
-export function LimitModal({ isLoggedIn, onClose }: LimitModalProps) {
+export function LimitModal({ isLoggedIn, onClose, t }: LimitModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Modal */}
       <div className="relative w-full max-w-sm rounded-2xl bg-[#111118] border border-[#2a2a3a] shadow-card animate-slide-up overflow-hidden">
-        {/* Header gradient */}
         <div className="h-1 bg-gradient-to-r from-violet-500 via-indigo-500 to-blue-500" />
-
         <div className="p-6">
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 text-[#5a5a72] hover:text-[#9090a8] transition-colors p-1 rounded-lg hover:bg-white/5"
-          >
+          <button onClick={onClose} className="absolute top-4 right-4 text-[#5a5a72] hover:text-[#9090a8] p-1 rounded-lg hover:bg-white/5">
             <X size={16} />
           </button>
 
@@ -31,31 +25,21 @@ export function LimitModal({ isLoggedIn, onClose }: LimitModalProps) {
             <Zap size={22} className="text-[#7c6af7]" />
           </div>
 
-          <h2 className="text-lg font-semibold text-[#f0f0f8] text-center mb-1">
-            {isLoggedIn ? 'Limit Harian Habis' : 'Limit Guest Habis'}
-          </h2>
+          <h2 className="text-lg font-semibold text-[#f0f0f8] text-center mb-1">{t.limitTitle}</h2>
           <p className="text-sm text-[#9090a8] text-center mb-6">
-            {isLoggedIn
-              ? 'Kowe wis nggunakake 10 chat dina iki. Balik maning sesuk ya!'
-              : 'Kowe wis nggunakake 5 chat gratis. Login kanggo entuk 10 chat saben dina!'}
+            {isLoggedIn ? t.limitUserDesc : t.limitGuestDesc}
           </p>
 
           {!isLoggedIn && (
             <>
-              {/* Benefits */}
               <div className="space-y-2 mb-6">
-                {[
-                  '10 chat per hari (2x lebih banyak)',
-                  'Riwayat chat tersimpan',
-                  'Akses semua model AI',
-                ].map((b) => (
+                {[t.benefit1, t.benefit2, t.benefit3].map((b) => (
                   <div key={b} className="flex items-center gap-2.5">
                     <CheckCircle size={14} className="text-emerald-400 flex-shrink-0" />
                     <span className="text-xs text-[#9090a8]">{b}</span>
                   </div>
                 ))}
               </div>
-
               <button
                 onClick={() => signIn('google')}
                 className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl
@@ -67,21 +51,15 @@ export function LimitModal({ isLoggedIn, onClose }: LimitModalProps) {
                   <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
-                Lanjut dengan Google
+                {t.continueGoogle}
               </button>
-
-              <p className="text-[10px] text-[#3a3a52] text-center mt-3">
-                Gratis selamanya · Tidak perlu kartu kredit
-              </p>
+              <p className="text-[10px] text-[#3a3a52] text-center mt-3">{t.freeForever}</p>
             </>
           )}
 
           {isLoggedIn && (
-            <button
-              onClick={onClose}
-              className="w-full px-4 py-2.5 rounded-xl bg-[#1a1a24] border border-[#2a2a3a] text-sm text-[#9090a8] hover:text-[#f0f0f8] transition-all"
-            >
-              Tutup
+            <button onClick={onClose} className="w-full px-4 py-2.5 rounded-xl bg-[#1a1a24] border border-[#2a2a3a] text-sm text-[#9090a8] hover:text-[#f0f0f8] transition-all">
+              {t.close}
             </button>
           )}
         </div>

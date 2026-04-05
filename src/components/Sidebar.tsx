@@ -5,6 +5,9 @@ import { cn } from '@/lib/utils'
 import type { ChatSession } from '@/lib/types'
 import { LimitBadge } from './LimitBadge'
 import { AuthButton } from './AuthButton'
+import { PlanBadge } from './PlanBadge'
+import { getT } from '@/lib/i18n'
+import type { PlanId } from '@/lib/plans'
 
 interface SidebarProps {
   sessions: ChatSession[]
@@ -20,12 +23,15 @@ interface SidebarProps {
   limitMax: number
   isLoggedIn: boolean
   user?: { name?: string | null; email?: string | null; image?: string | null } | null
+  langId: string
+  userPlan?: PlanId
 }
 
 export function Sidebar({
   sessions, activeSessionId, onNewChat, onSelectSession, onDeleteSession,
-  isOpen, onClose, collapsed, onToggleCollapse, limitUsed, limitMax, isLoggedIn, user,
+  isOpen, onClose, collapsed, onToggleCollapse, limitUsed, limitMax, isLoggedIn, user, langId, userPlan = 'free',
 }: SidebarProps) {
+  const t = getT(langId)
   return (
     <>
       {/* Mobile overlay backdrop */}
@@ -104,7 +110,7 @@ export function Sidebar({
             title={collapsed ? 'Obrolan Anyar' : undefined}
           >
             <Plus size={15} className="group-hover:rotate-90 transition-transform duration-200 flex-shrink-0" />
-            {!collapsed && <span>Obrolan Anyar</span>}
+            {!collapsed && <span>{t.newChat}</span>}
           </button>
         </div>
 
@@ -116,15 +122,15 @@ export function Sidebar({
                 <div className="w-10 h-10 rounded-xl bg-[#1a1a24] flex items-center justify-center mb-3">
                   <MessageSquare size={16} className="text-[#5a5a72]" />
                 </div>
-                <p className="text-xs text-[#5a5a72]">Durung ana obrolan</p>
-                <p className="text-xs text-[#3a3a52] mt-1">Mulai obrolan anyar!</p>
+                <p className="text-xs text-[#5a5a72]">{t.noChats}</p>
+                <p className="text-xs text-[#3a3a52] mt-1">{t.noChatsDesc}</p>
               </div>
             )
           ) : (
             <>
               {!collapsed && (
                 <p className="text-[10px] font-medium text-[#5a5a72] uppercase tracking-wider px-2 py-2">
-                  Riwayat
+                  {t.history}
                 </p>
               )}
               {sessions.map((session) => {
@@ -172,8 +178,9 @@ export function Sidebar({
         {/* Footer */}
         {!collapsed && (
           <div className="px-4 py-4 border-t border-[#1e1e2a] flex-shrink-0 space-y-3">
+            <PlanBadge plan={userPlan} />
             <LimitBadge used={limitUsed} limit={limitMax} isLoggedIn={isLoggedIn} />
-            <AuthButton user={user} />
+            <AuthButton user={user} logoutLabel={t.logout} />
           </div>
         )}
 

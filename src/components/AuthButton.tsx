@@ -7,9 +7,10 @@ import { cn } from '@/lib/utils'
 interface AuthButtonProps {
   user?: { name?: string | null; email?: string | null; image?: string | null } | null
   compact?: boolean
+  logoutLabel?: string
 }
 
-export function AuthButton({ user, compact = false }: AuthButtonProps) {
+export function AuthButton({ user, compact = false, logoutLabel = 'Logout' }: AuthButtonProps) {
   if (user) {
     return (
       <div className="flex items-center gap-2">
@@ -36,7 +37,7 @@ export function AuthButton({ user, compact = false }: AuthButtonProps) {
           title="Logout"
         >
           <LogOut size={12} />
-          {!compact && <span>Logout</span>}
+          {!compact && <span>{logoutLabel}</span>}
         </button>
       </div>
     )

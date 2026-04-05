@@ -11,19 +11,16 @@ import { ModelSelector } from './ModelSelector'
 import { SkillSelector } from './SkillSelector'
 import { LanguageSelector } from './LanguageSelector'
 import { LimitModal } from './LimitModal'
+import { UpgradePrompt } from './UpgradePrompt'
 import type { Message, ChatSession } from '@/lib/types'
-import { getSkillById } from '@/lib/skills'
 import { getLanguageById } from '@/lib/languages'
 import { GUEST_LIMIT, USER_LIMIT } from '@/lib/rateLimit'
 import { cn } from '@/lib/utils'
 import { buildMessageContent, type ProcessedAttachment } from '@/lib/fileProcessor'
+import { getT } from '@/lib/i18n'
 
-const SUGGESTIONS = [
-  { icon: Code2,     text: 'Kepriwe carane gawe REST API nganggo Next.js?', label: 'Coding',  skillId: 'code' },
-  { icon: BookOpen,  text: 'Jelasna machine learning nganggo basa sing gampang!', label: 'Belajar', skillId: 'explain' },
-  { icon: ChefHat,   text: 'Tulung gaweake resep masakan khas Banyumas', label: 'Resep', skillId: 'general' },
-  { icon: Lightbulb, text: 'Apa bedane Python karo JavaScript kanggo pemula?', label: 'Tips', skillId: 'explain' },
-]
+const SUGGESTION_ICONS = [Code2, BookOpen, ChefHat, Lightbulb]
+const SUGGESTION_SKILLS = ['code', 'explain', 'general', 'explain']
 
 function generateId() { return Math.random().toString(36).slice(2, 11) }
 function generateTitle(content: string) {
@@ -47,11 +44,24 @@ export function ChatPage() {
   const [limitUsed, setLimitUsed] = useState(0)
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [webSearch, setWebSearch] = useState(false)
+  const [upgradeReason, setUpgradeReason] = useState<'model' | 'vision' | 'limit' | null>(null)
+  const [upgradeModelName, setUpgradeModelName] = useState('')
+  const userPlan = 'free' as const
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const activeSession = sessions.find((s) => s.id === activeSessionId) ?? null
   const isLimitReached = limitUsed >= limitMax
+  const t = getT(langId)
+  const lang = getLanguageById(langId)
+
+  // Suggestions dari i18n
+  const SUGGESTIONS = [
+    { icon: SUGGESTION_ICONS[0]!, text: t.suggCoding, label: t.suggCodingLabel, skillId: SUGGESTION_SKILLS[0]! },
+    { icon: SUGGESTION_ICONS[1]!, text: t.suggLearn,  label: t.suggLearnLabel,  skillId: SUGGESTION_SKILLS[1]! },
+    { icon: SUGGESTION_ICONS[2]!, text: t.suggRecipe, label: t.suggRecipeLabel, skillId: SUGGESTION_SKILLS[2]! },
+    { icon: SUGGESTION_ICONS[3]!, text: t.suggTips,   label: t.suggTipsLabel,   skillId: SUGGESTION_SKILLS[3]! },
+  ]
 
   const fetchLimit = useCallback(async () => {
     try {
@@ -64,7 +74,6 @@ export function ChatPage() {
   }, [])
 
   useEffect(() => { fetchLimit() }, [fetchLimit, isLoggedIn])
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [activeSession?.messages, streamingContent, isLoading])
@@ -86,13 +95,13 @@ export function ChatPage() {
 
   const createNewSession = useCallback(() => {
     const s: ChatSession = {
-      id: generateId(), title: 'Obrolan Anyar', messages: [],
+      id: generateId(), title: t.newChat, messages: [],
       createdAt: new Date(), updatedAt: new Date(), userMessageCount: 0,
     }
     setSessions((prev) => [s, ...prev])
     setActiveSessionId(s.id)
     setSidebarOpen(false)
-  }, [])
+  }, [t.newChat])
 
   const deleteSession = useCallback((id: string) => {
     setSessions((prev) => prev.filter((s) => s.id !== id))
@@ -106,24 +115,22 @@ export function ChatPage() {
     let sessionId = activeSessionId
     if (!sessionId) {
       const s: ChatSession = {
-        id: generateId(), title: generateTitle(content || (attachment?.name ?? 'File')), messages: [],
-        createdAt: new Date(), updatedAt: new Date(), userMessageCount: 0,
+        id: generateId(),
+        title: generateTitle(content || (attachment?.name ?? 'File')),
+        messages: [], createdAt: new Date(), updatedAt: new Date(), userMessageCount: 0,
       }
       setSessions((prev) => [s, ...prev])
       setActiveSessionId(s.id)
       sessionId = s.id
     }
 
-    // Build display content untuk UI (selalu string)
     const displayContent = attachment
       ? attachment.kind === 'image'
         ? (content ? `${content}\n\n📎 ${attachment.name}` : `📎 ${attachment.name}`)
         : (content ? `${content}\n\n📄 ${attachment.name}` : `📄 ${attachment.name}`)
       : content
 
-    // Build API content (bisa string atau multipart blocks)
     const apiContent = buildMessageContent(content, attachment ?? null)
-
     const userMsg: Message = { id: generateId(), role: 'user', content: displayContent, createdAt: new Date(), skillId }
 
     setSessions((prev) => prev.map((s) => s.id === sessionId ? {
@@ -141,7 +148,6 @@ export function ChatPage() {
 
     try {
       const currentSession = sessions.find((s) => s.id === sessionId)
-      // Kirim history dengan display content (string), tapi pesan terakhir pakai apiContent (bisa multipart)
       const history = [
         ...(currentSession?.messages ?? []).map((m) => ({ role: m.role, content: m.content })),
         { role: 'user' as const, content: apiContent },
@@ -163,7 +169,7 @@ export function ChatPage() {
         return
       }
 
-      if (!res.ok) throw new Error('Request gagal')
+      if (!res.ok) throw new Error('Request failed')
 
       const remaining = res.headers.get('X-RateLimit-Remaining')
       const limit = res.headers.get('X-RateLimit-Limit')
@@ -204,7 +210,7 @@ export function ChatPage() {
           ? { ...s, userMessageCount: Math.max(0, (s.userMessageCount ?? 1) - 1) } : s))
         const errMsg: Message = {
           id: generateId(), role: 'assistant',
-          content: 'Waduh, ana masalah teknis. Coba maning ya, bro! 🙏',
+          content: '⚠️ Ada masalah teknis. Coba lagi ya!',
           createdAt: new Date(),
         }
         setSessions((prev) => prev.map((s) => s.id === sessionId
@@ -219,12 +225,14 @@ export function ChatPage() {
 
   const messages = activeSession?.messages ?? []
   const isEmpty = messages.length === 0 && !isLoading
-  const lang = getLanguageById(langId)
 
   return (
     <div className="flex h-screen bg-[#0a0a0f] overflow-hidden">
       {showLimitModal && (
-        <LimitModal isLoggedIn={isLoggedIn} onClose={() => setShowLimitModal(false)} />
+        <LimitModal isLoggedIn={isLoggedIn} onClose={() => setShowLimitModal(false)} t={t} />
+      )}
+      {upgradeReason && (
+        <UpgradePrompt reason={upgradeReason} modelName={upgradeModelName} onClose={() => setUpgradeReason(null)} />
       )}
 
       <Sidebar
@@ -241,6 +249,8 @@ export function ChatPage() {
         limitMax={limitMax}
         isLoggedIn={isLoggedIn}
         user={session?.user}
+        langId={langId}
+        userPlan={userPlan}
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -258,13 +268,13 @@ export function ChatPage() {
               <div>
                 <h2 className="text-sm font-medium text-[#f0f0f8] truncate">{activeSession.title}</h2>
                 <p className="text-[10px] text-[#5a5a72]">
-                  {activeSession.messages.length} pesan · {' '}
+                  {activeSession.messages.length} {t.messages} · {' '}
                   <span className={cn(
                     (limitMax - limitUsed) <= 1 ? 'text-red-400'
                       : (limitMax - limitUsed) <= 3 ? 'text-amber-400'
                       : 'text-[#5a5a72]',
                   )}>
-                    {isLimitReached ? 'Limit harian habis' : `${limitMax - limitUsed} chat tersisa`}
+                    {isLimitReached ? t.limitReached : `${limitMax - limitUsed} ${t.remaining}`}
                   </span>
                 </p>
               </div>
@@ -278,28 +288,30 @@ export function ChatPage() {
             )}
           </div>
 
-          {/* Controls kanan */}
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <LanguageSelector value={langId} onChange={setLangId} />
             <SkillSelector value={skillId} onChange={setSkillId} />
-            <ModelSelector value={model} onChange={setModel} />
+            <ModelSelector
+              value={model}
+              onChange={setModel}
+              userPlan={userPlan}
+              onPaidModelClick={(name) => { setUpgradeModelName(name); setUpgradeReason('model') }}
+            />
           </div>
         </header>
 
-        {/* Limit warning banner */}
+        {/* Limit banner */}
         {isLimitReached && (
           <div className="flex items-center gap-2.5 px-4 py-2.5 bg-red-500/10 border-b border-red-500/20 flex-shrink-0">
             <span className="text-xs text-red-300 flex-1">
-              {isLoggedIn
-                ? `Limit harian ${limitMax} chat habis. Balik sesuk!`
-                : `Limit guest ${GUEST_LIMIT} chat habis. Login Google → ${USER_LIMIT} chat/hari!`}
+              {isLoggedIn ? t.limitUserMsg : t.limitGuestMsg}
             </span>
             {!isLoggedIn && (
               <button
                 onClick={() => setShowLimitModal(true)}
                 className="text-xs px-3 py-1 rounded-lg bg-[#7c6af7]/20 hover:bg-[#7c6af7]/30 text-[#a78bfa] border border-[#7c6af7]/30 transition-all flex-shrink-0"
               >
-                Login Google
+                {t.loginGoogle}
               </button>
             )}
           </div>
@@ -317,19 +329,19 @@ export function ChatPage() {
               </div>
               <h2 className="text-3xl font-bold text-gradient mb-2">Ngapak AI</h2>
               <p className="text-[#9090a8] text-center max-w-sm mb-1 text-sm">
-                {lang.greeting} Inyong asisten AI saka tlatah Banyumas.
+                {t.welcomeSubtitle}
               </p>
               <p className="text-[#5a5a72] text-center max-w-sm mb-10 text-xs">
                 {isLoggedIn
-                  ? `${limitMax - limitUsed} chat tersisa hari ini`
-                  : `Guest: ${GUEST_LIMIT} chat/hari · Login Google: ${USER_LIMIT} chat/hari`}
+                  ? `${limitMax - limitUsed} ${t.remaining}`
+                  : `Guest: ${GUEST_LIMIT} ${t.welcomeHint} · Login Google: ${USER_LIMIT} ${t.welcomeHint}`}
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
                 {SUGGESTIONS.map((s) => {
                   const Icon = s.icon
                   return (
                     <button
-                      key={s.text}
+                      key={s.skillId + s.label}
                       onClick={() => { setSkillId(s.skillId); sendMessage(s.text) }}
                       disabled={isLimitReached}
                       className="group flex items-start gap-3 p-4 rounded-2xl text-left transition-all duration-200
@@ -354,8 +366,7 @@ export function ChatPage() {
               {isLoading && streamingContent ? (
                 <ChatMessage
                   message={{ id: 'streaming', role: 'assistant', content: streamingContent, createdAt: new Date() }}
-                  isStreaming
-                  langId={langId}
+                  isStreaming langId={langId}
                 />
               ) : isLoading ? <TypingIndicator /> : null}
               <div ref={messagesEndRef} className="h-4" />
@@ -367,13 +378,15 @@ export function ChatPage() {
           onSend={sendMessage}
           isLoading={isLoading}
           onStop={() => abortRef.current?.abort()}
-          placeholder={isLimitReached
-            ? (isLoggedIn ? 'Limit harian habis. Balik sesuk!' : 'Login Google kanggo lanjut chat!')
-            : lang.uiLabel.placeholder}
+          placeholder={isLimitReached ? t.limitReached : lang.uiLabel.placeholder}
           disabled={isLimitReached}
           footer={lang.uiLabel.footer}
           webSearchEnabled={webSearch}
           onToggleWebSearch={() => setWebSearch((v) => !v)}
+          fileLabel={t.fileBtn}
+          webLabel={t.webBtn}
+          webOnLabel={t.webBtnOn}
+          inputHint={t.inputHint}
         />
       </div>
     </div>

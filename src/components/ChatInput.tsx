@@ -14,6 +14,10 @@ interface ChatInputProps {
   footer?: string
   webSearchEnabled?: boolean
   onToggleWebSearch?: () => void
+  fileLabel?: string
+  webLabel?: string
+  webOnLabel?: string
+  inputHint?: string
 }
 
 const ACCEPTED = 'image/*,.txt,.md,.js,.ts,.jsx,.tsx,.py,.rb,.go,.rs,.java,.cpp,.c,.cs,.php,.swift,.kt,.html,.css,.scss,.json,.yaml,.yml,.toml,.xml,.sql,.sh,.bash,.env,.csv'
@@ -33,6 +37,8 @@ export function ChatInput({
   placeholder = 'Ketik pesan kamu...',
   disabled = false, footer,
   webSearchEnabled = false, onToggleWebSearch,
+  fileLabel = 'File', webLabel = 'Web', webOnLabel = 'Web On',
+  inputHint = 'Enter kirim · Shift+Enter baris baru',
 }: ChatInputProps) {
   const [input, setInput] = useState('')
   const [attachment, setAttachment] = useState<ProcessedAttachment | null>(null)
@@ -181,7 +187,7 @@ export function ChatInput({
                 title="Upload gambar atau file kode"
               >
                 <Paperclip size={13} />
-                <span className="hidden sm:inline">{isProcessing ? 'Loading...' : 'File'}</span>
+                <span className="hidden sm:inline">{isProcessing ? 'Loading...' : fileLabel}</span>
               </button>
 
               <button
@@ -196,13 +202,13 @@ export function ChatInput({
                 title={webSearchEnabled ? 'Web search aktif' : 'Aktifkan web search'}
               >
                 <Globe size={13} />
-                <span className="hidden sm:inline">{webSearchEnabled ? 'Web On' : 'Web'}</span>
+                <span className="hidden sm:inline">{webSearchEnabled ? webOnLabel : webLabel}</span>
               </button>
             </div>
 
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-[#3a3a52] hidden sm:block">
-                {isLoading ? '' : 'Enter kirim · Shift+Enter baris baru'}
+                {isLoading ? '' : inputHint}
               </span>
               <button
                 onClick={isLoading ? onStop : handleSubmit}
