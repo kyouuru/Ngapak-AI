@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type CSSProperties } from 'react'
+import { useSession, signIn } from 'next-auth/react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -745,9 +746,19 @@ function LivingLumbonBackground() {
 }
 
 export function LandingPage() {
+  const { data: session } = useSession()
+  const isLoggedIn = !!session?.user
   const [mobileMenu, setMobileMenu] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
   const [scrolled, setScrolled] = useState(false)
+
+  function handleSelectPlan(plan: Plan) {
+    if (!isLoggedIn) {
+      signIn('google', { callbackUrl: '/#pricing' })
+      return
+    }
+    setSelectedPlan(plan)
+  }
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 24)
@@ -947,7 +958,7 @@ export function LandingPage() {
                   <li key={item} className="flex gap-3"><Check size={16} className="mt-0.5 shrink-0 text-[#b5502e]" />{item}</li>
                 ))}
               </ul>
-              <button onClick={() => setSelectedPlan(PLANS.find((item) => item.id === 'mini') ?? PLANS[1]!)} className="mt-8 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#b5502e] text-sm font-bold text-[#fff4dc] transition hover:bg-[#8f3e24] focus:outline-none focus:ring-2 focus:ring-[#b5502e]/45">
+              <button onClick={() => handleSelectPlan(PLANS.find((item) => item.id === 'mini') ?? PLANS[1]!)} className="mt-8 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#b5502e] text-sm font-bold text-[#fff4dc] transition hover:bg-[#8f3e24] focus:outline-none focus:ring-2 focus:ring-[#b5502e]/45">
                 Bayar dengan Crypto <Wallet size={16} />
               </button>
               <p className="mt-3 text-xs leading-5 text-[#8a6b52]">Pembayaran diproses langsung on-chain. Pastikan jaringan benar sebelum konfirmasi.</p>
@@ -968,7 +979,7 @@ export function LandingPage() {
                   <li key={item} className="flex gap-3"><Check size={16} className="mt-0.5 shrink-0 text-[#445d3b]" />{item}</li>
                 ))}
               </ul>
-              <button onClick={() => setSelectedPlan(PLANS.find((item) => item.id === 'pro') ?? PLANS[2]!)} className="mt-8 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#445d3b] text-sm font-bold text-[#fff4dc] transition hover:bg-[#34472d] focus:outline-none focus:ring-2 focus:ring-[#445d3b]/45">
+              <button onClick={() => handleSelectPlan(PLANS.find((item) => item.id === 'pro') ?? PLANS[2]!)} className="mt-8 flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-[#445d3b] text-sm font-bold text-[#fff4dc] transition hover:bg-[#34472d] focus:outline-none focus:ring-2 focus:ring-[#445d3b]/45">
                 Bayar dengan Crypto <Wallet size={16} />
               </button>
               <p className="mt-3 text-xs leading-5 text-[#60412f]">Harga dikonversi real-time ke token yang dipilih saat checkout.</p>

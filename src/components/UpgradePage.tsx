@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useSession } from 'next-auth/react'
-import { Check, Sparkles, ArrowLeft, Zap, Crown, Star } from 'lucide-react'
+import { useSession, signIn } from 'next-auth/react'
+import { Check, Sparkles, ArrowLeft, Zap, Crown, Star, LogIn } from 'lucide-react'
 import Link from 'next/link'
 import { PLANS, formatPrice, type Plan } from '@/lib/plans'
 import { cn } from '@/lib/utils'
@@ -16,7 +16,16 @@ const PLAN_ICONS = {
 
 export function UpgradePage() {
   const { data: session } = useSession()
+  const isLoggedIn = !!session?.user
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
+
+  function handleSelectPlan(plan: Plan) {
+    if (!isLoggedIn) {
+      signIn('google', { callbackUrl: '/upgrade' })
+      return
+    }
+    setSelectedPlan(plan)
+  }
 
   return (
     <div className="paper-grain min-h-screen bg-[#f4e6ca] text-[#241711]">
@@ -60,6 +69,27 @@ export function UpgradePage() {
 
         {/* Plans Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          {/* Login banner — tampil kalau belum login */}
+          {!isLoggedIn && (
+            <div className="md:col-span-3 flex items-center justify-between gap-4 rounded-2xl border border-[#b5502e]/30 bg-[#b5502e]/8 px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-[#b5502e]/15 flex items-center justify-center shrink-0">
+                  <LogIn size={16} className="text-[#b5502e]" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-[#241711]">Login dulu untuk upgrade</p>
+                  <p className="text-xs text-[#8a6b52] mt-0.5">Akun Google dibutuhkan agar plan tersimpan ke akun kamu.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => signIn('google', { callbackUrl: '/upgrade' })}
+                className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl bg-[#b5502e] hover:bg-[#8f3e24] text-[#fff4dc] text-sm font-semibold transition-all"
+              >
+                <LogIn size={14} />
+                Login Google
+              </button>
+            </div>
+          )}
           {PLANS.map((plan) => {
             const Icon = PLAN_ICONS[plan.id]
             const isPopular = plan.id === 'mini'
@@ -137,7 +167,7 @@ export function UpgradePage() {
                   </Link>
                 ) : (
                   <button
-                    onClick={() => setSelectedPlan(plan)}
+                    onClick={() => handleSelectPlan(plan)}
                     className={cn(
                       'w-full py-3 rounded-xl text-sm font-semibold transition-all',
                       isPopular
@@ -145,7 +175,13 @@ export function UpgradePage() {
                         : 'bg-[#445d3b] hover:bg-[#34472d] text-[#fff4dc]',
                     )}
                   >
-                    Upgrade ke {plan.name}
+                    {!isLoggedIn ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <LogIn size={14} /> Login untuk Upgrade
+                      </span>
+                    ) : (
+                      `Upgrade ke ${plan.name}`
+                    )}
                   </button>
                 )}
               </div>

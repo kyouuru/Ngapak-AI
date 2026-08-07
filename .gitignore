@@ -4,3 +4,6 @@ node_modules/
 .next/
 out/
 datavercel.json
+push-env-to-vercel.ps1
+.vercel
+.env*

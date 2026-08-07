@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useSession }          from 'next-auth/react'
+import { useSession, signIn }          from 'next-auth/react'
 import { useAccount, useConnect, useSendTransaction, useSwitchChain } from 'wagmi'
 import { ConnectButton }       from '@rainbow-me/rainbowkit'
 import { parseEther }          from 'viem'
@@ -32,7 +32,39 @@ function shortAddress(addr: string) {
 
 export function CryptoCheckoutModal({ plan, onClose }: { plan: Plan; onClose: () => void }) {
   const { data: session } = useSession()
-  const userEmail = session?.user?.email ?? 'wallet-user'
+  const userEmail = session?.user?.email ?? ''
+
+  // Gate: harus login Google dulu
+  if (!userEmail) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+        <div className="absolute inset-0 bg-[#241711]/45 backdrop-blur-sm" onClick={onClose} />
+        <div className="paper-grain relative w-full max-w-sm rounded-2xl bg-[#fff4dc] border border-[#4a2d1c]/15 shadow-[10px_10px_0_rgba(36,23,17,0.12)] overflow-hidden text-[#241711]">
+          <div className="h-1 bg-gradient-to-r from-[#b5502e] via-[#9b6a2f] to-[#445d3b]" />
+          <div className="p-6 flex flex-col items-center text-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-[#b5502e]/12 border border-[#b5502e]/25 flex items-center justify-center">
+              <Shield size={24} className="text-[#b5502e]" />
+            </div>
+            <div>
+              <h2 className="text-base font-semibold text-[#241711] mb-1">Login dulu, ya!</h2>
+              <p className="text-sm text-[#60412f] leading-relaxed">
+                Akun Google dibutuhkan supaya plan yang kamu beli tersimpan ke akun kamu dan tidak hilang.
+              </p>
+            </div>
+            <button
+              onClick={() => { onClose(); signIn('google', { callbackUrl: '/upgrade' }) }}
+              className="w-full py-3 rounded-xl bg-[#b5502e] hover:bg-[#8f3e24] text-[#fff4dc] text-sm font-semibold flex items-center justify-center gap-2 transition-all"
+            >
+              <Wallet size={14} /> Login dengan Google
+            </button>
+            <button onClick={onClose} className="text-sm text-[#8a6b52] hover:text-[#60412f] transition-colors">
+              Batal
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // ── wagmi EVM hooks ──────────────────────────────────────────
   const { address: evmAddress, isConnected: evmConnected, chain } = useAccount()
