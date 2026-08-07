@@ -49,7 +49,7 @@ export function UpgradePrompt({ reason, modelName, onClose }: UpgradePromptProps
           <div className="rounded-xl bg-[#d97757]/5 border border-[#d97757]/20 p-4 mb-5">
             <div className="flex items-center gap-2 mb-3">
               <Star size={14} className="text-[#d97757]" />
-              <span className="text-sm font-semibold text-[#f2ede4]">Plan Mini — Rp 49.000/bulan</span>
+              <span className="text-sm font-semibold text-[#f2ede4]">Plan Mini — {miniPlan.priceLabel}</span>
             </div>
             <ul className="space-y-1.5">
               {miniPlan.features.slice(0, 4).map((f) => (

@@ -12,11 +12,13 @@ interface ModelSelectorProps {
   onPaidModelClick?: (modelName: string) => void
 }
 
+// Model list — only show models that are tested and working
 const MODELS = [
   // ── Free model ──────────────────────────────────────────────
   {
     id: 'agentrouter/claude-opus-4-8',
     name: 'Claude Opus 4.8',
+    shortName: 'Claude 4.8',
     desc: 'AgentRouter · Default, cepat & pinter',
     icon: Brain,
     badge: 'Free ⭐',
@@ -27,6 +29,7 @@ const MODELS = [
   {
     id: 'agentrouter/claude-opus-5',
     name: 'Claude Opus 5',
+    shortName: 'Claude 5',
     desc: 'AgentRouter · Model terbaru Anthropic',
     icon: Brain,
     badge: 'Pro',
@@ -36,6 +39,7 @@ const MODELS = [
   {
     id: 'agentrouter/gpt-5.6-sol',
     name: 'GPT-5.6 Sol',
+    shortName: 'GPT-5.6',
     desc: 'AgentRouter · OpenAI terkini',
     icon: Flame,
     badge: 'Pro',
@@ -46,6 +50,7 @@ const MODELS = [
   {
     id: 'google/gemini-2.0-flash-001',
     name: 'Gemini 2.0 Flash',
+    shortName: 'Gemini 2.0',
     desc: 'OpenRouter · Google, super cepat',
     icon: Flame,
     badge: 'Free',
@@ -55,6 +60,7 @@ const MODELS = [
   {
     id: 'meta-llama/llama-3.3-70b-instruct',
     name: 'Llama 3.3 70B',
+    shortName: 'Llama 3.3',
     desc: 'NVIDIA Nemotron · Open source, powerful',
     icon: Cpu,
     badge: 'Free',
@@ -64,6 +70,7 @@ const MODELS = [
   {
     id: 'nvidia/deepseek-v4-flash',
     name: 'DeepSeek V4 Flash',
+    shortName: 'DeepSeek',
     desc: 'NVIDIA NIM · Thinking + reasoning tinggi',
     icon: Zap,
     badge: 'Thinking ✨',
@@ -107,12 +114,13 @@ export function ModelSelector({ value, onChange, userPlan = 'free', onPaidModelC
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all
-          bg-[#fff4dc]/80 border border-[#4a2d1c]/18 text-[#60412f] hover:text-[#241711] hover:border-[#b5502e]/35"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all
+          bg-[#fff4dc]/80 border border-[#4a2d1c]/18 text-[#60412f] hover:text-[#241711] hover:border-[#b5502e]/35
+          max-w-[130px] sm:max-w-[160px]"
       >
-        <Icon size={12} className={isPaidModel && userPlan === 'free' ? 'text-amber-500' : 'text-[#b5502e]'} />
-        <span className="hidden sm:inline">{selected.name}</span>
-        <ChevronDown size={11} className={cn('transition-transform text-[#8a6b52]', open && 'rotate-180')} />
+        <Icon size={12} className={cn('flex-shrink-0', isPaidModel && userPlan === 'free' ? 'text-amber-500' : 'text-[#b5502e]')} />
+        <span className="hidden sm:inline truncate">{selected.shortName}</span>
+        <ChevronDown size={11} className={cn('transition-transform text-[#8a6b52] flex-shrink-0', open && 'rotate-180')} />
       </button>
 
       {open && (
