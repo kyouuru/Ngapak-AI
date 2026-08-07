@@ -611,7 +611,7 @@ function MiniChat() {
   }, [phase, scriptIndex])
 
   return (
-    <div className="ink-outline rotate-[-2.5deg] rounded-[2rem_1.1rem_2.4rem_1.4rem] bg-[#fff4dc] p-5 text-[#241711]">
+    <div className="ink-outline rotate-[-2.5deg] rounded-[2rem_1.1rem_2.4rem_1.4rem] bg-[#fff4dc] p-5 text-[#241711]" style={{ minHeight: 240 }}>
       <div className="flex items-center justify-between border-b border-[#4a2d1c]/15 pb-3">
         <div className="flex items-center gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -623,7 +623,7 @@ function MiniChat() {
         </div>
         <span className="rounded-full bg-[#445d3b]/10 px-2.5 py-1 text-xs font-medium text-[#445d3b]">Live</span>
       </div>
-      <div className="mt-4 space-y-3 min-h-[110px]">
+      <div className="mt-4 space-y-3 overflow-hidden" style={{ height: 110 }}>
         {/* User bubble */}
         {userText.length > 0 && (
           <div className="max-w-[86%] rounded-[1.3rem_1.3rem_1.3rem_0.35rem] bg-[#ead6b5] px-4 py-3 text-sm leading-6 text-[#60412f]">
@@ -1051,7 +1051,7 @@ export function LandingPage() {
           <AnimatedSection delay={0.12}>
             <div className="relative">
               <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-[#b5502e]/15 via-transparent to-[#445d3b]/15 blur-2xl" />
-              <div className="relative">
+              <div className="relative" style={{ minHeight: 280 }}>
                 <MiniChat />
               </div>
             </div>
