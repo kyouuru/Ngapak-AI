@@ -15,14 +15,14 @@ export function AuthButton({ user, compact = false, logoutLabel = 'Logout' }: Au
     return (
       <div className="flex items-center gap-2">
         {!compact && (
-          <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-[#1a1a24] border border-[#2a2a3a]">
+          <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-[#141310] border border-[#2e2b24]">
             {user.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.image} alt={user.name ?? ''} className="w-5 h-5 rounded-full" />
             ) : (
-              <User size={12} className="text-[#9090a8]" />
+              <User size={12} className="text-[#a09880]" />
             )}
-            <span className="text-xs text-[#9090a8] max-w-[100px] truncate hidden sm:block">
+            <span className="text-xs text-[#a09880] max-w-[100px] truncate hidden sm:block">
               {user.name ?? user.email}
             </span>
           </div>
@@ -31,7 +31,7 @@ export function AuthButton({ user, compact = false, logoutLabel = 'Logout' }: Au
           onClick={() => signOut()}
           className={cn(
             'flex items-center gap-1.5 rounded-xl text-xs font-medium transition-all',
-            'bg-[#1a1a24] border border-[#2a2a3a] text-[#9090a8] hover:text-red-400 hover:border-red-400/30',
+            'bg-[#141310] border border-[#2e2b24] text-[#a09880] hover:text-red-400 hover:border-red-400/30',
             compact ? 'p-2' : 'px-3 py-1.5',
           )}
           title="Logout"
@@ -47,9 +47,9 @@ export function AuthButton({ user, compact = false, logoutLabel = 'Logout' }: Au
     <button
       onClick={() => signIn('google')}
       className={cn(
-        'flex items-center gap-2 rounded-xl text-xs font-medium transition-all',
-        'bg-[#7c6af7]/10 hover:bg-[#7c6af7]/20 text-[#a78bfa] border border-[#7c6af7]/20 hover:border-[#7c6af7]/40',
-        compact ? 'p-2' : 'px-3 py-1.5',
+        'flex items-center gap-2 rounded-xl text-xs font-medium transition-all w-full justify-center',
+        'bg-[#d97757]/10 hover:bg-[#d97757]/18 text-[#d97757] border border-[#d97757]/20 hover:border-[#d97757]/35',
+        compact ? 'p-2' : 'px-3 py-2',
       )}
       title="Login dengan Google"
     >

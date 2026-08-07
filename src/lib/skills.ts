@@ -1,10 +1,8 @@
-// Diadaptasi dari skills/bundled/ di Claude Code source
-// Setiap skill punya system prompt khusus yang memperkuat kemampuan AI
-
+// Skill definitions — icons reference Lucide icon names (rendered in SkillSelector)
 export interface Skill {
   id: string
   name: string
-  emoji: string
+  icon: string          // Lucide icon name
   description: string
   color: string
   systemPromptAddendum: string
@@ -15,16 +13,16 @@ export const SKILLS: Skill[] = [
   {
     id: 'general',
     name: 'Umum',
-    emoji: '✨',
+    icon: 'Sparkles',
     description: 'Obrolan umum, tanya jawab, diskusi',
-    color: 'text-violet-400 bg-violet-400/10 border-violet-400/20',
+    color: 'text-[#d97757] bg-[#d97757]/10 border-[#d97757]/20',
     placeholder: 'Takon apa bae karo Ngapak AI...',
     systemPromptAddendum: '',
   },
   {
     id: 'code',
     name: 'Coding',
-    emoji: '💻',
+    icon: 'Code2',
     description: 'Bantu nulis, debug, lan review kode',
     color: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
     placeholder: 'Takon babagan kode, bug, utawa arsitektur...',
@@ -54,7 +52,7 @@ Yen ana bug:
   {
     id: 'explain',
     name: 'Jelasna',
-    emoji: '📚',
+    icon: 'BookOpen',
     description: 'Jelasna konsep sing angel nganggo basa sing gampang',
     color: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
     placeholder: 'Konsep apa sing pengin kowe pahami?',
@@ -80,12 +78,12 @@ Yen ana istilah teknis, tansah jelasna artine dhisik.
   {
     id: 'simplify',
     name: 'Simplify',
-    emoji: '🔧',
+    icon: 'Wrench',
     description: 'Review lan improve kode sing wis ana',
     color: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
     placeholder: 'Paste kode sing pengin di-review utawa improve...',
     systemPromptAddendum: `
-## Mode Simplify (diadaptasi saka Claude Code /simplify skill)
+## Mode Simplify
 
 Review kode sing diwenehake kanggo:
 
@@ -98,7 +96,7 @@ Review kode sing diwenehake kanggo:
 - Redundant state utawa kalkulasi
 - Parameter sprawl — terlalu akeh parameter
 - Copy-paste karo variasi cilik
-- Komentar sing ora perlu (jelasna KENAPA, dudu APA)
+- Komentar sing ora perlu
 - Penamaan variabel sing kurang jelas
 
 ### 3. Efisiensi
@@ -113,12 +111,12 @@ Kasih feedback sing konkret lan langsung bisa diimplementasikan.
   {
     id: 'debug',
     name: 'Debug',
-    emoji: '🐛',
+    icon: 'Bug',
     description: 'Bantu diagnosa lan fix bug',
     color: 'text-red-400 bg-red-400/10 border-red-400/20',
     placeholder: 'Ceritakna bug-e utawa paste error message-e...',
     systemPromptAddendum: `
-## Mode Debug (diadaptasi saka Claude Code /debug skill)
+## Mode Debug
 
 Kowe iku debugging expert. Pendekatan kowe:
 
@@ -147,7 +145,7 @@ Kowe iku debugging expert. Pendekatan kowe:
   {
     id: 'creative',
     name: 'Kreatif',
-    emoji: '🎨',
+    icon: 'Palette',
     description: 'Nulis kreatif, ide, lan brainstorming',
     color: 'text-pink-400 bg-pink-400/10 border-pink-400/20',
     placeholder: 'Apa sing pengin kowe gawe utawa eksplorasi?',

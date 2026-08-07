@@ -20,6 +20,7 @@ const MODELS = [
     icon: Cpu,
     badge: 'Free ⭐',
     badgeColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+    provider: 'openrouter',
   },
   {
     id: 'google/gemini-2.0-flash-001',
@@ -28,6 +29,7 @@ const MODELS = [
     icon: Flame,
     badge: 'Free',
     badgeColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+    provider: 'openrouter',
   },
   {
     id: 'meta-llama/llama-3.3-70b-instruct',
@@ -36,6 +38,25 @@ const MODELS = [
     icon: Cpu,
     badge: 'Free',
     badgeColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+    provider: 'openrouter',
+  },
+  {
+    id: 'nvidia/llama-3.1-nemotron-70b-instruct',
+    name: 'Nemotron 70B',
+    desc: 'Gratis · NVIDIA, reasoning kuat',
+    icon: Zap,
+    badge: 'NVIDIA',
+    badgeColor: 'text-green-400 bg-green-400/10 border-green-400/20',
+    provider: 'nvidia',
+  },
+  {
+    id: 'nvidia/mistral-nemo-minitron-8b',
+    name: 'Minitron 8B',
+    desc: 'Gratis · NVIDIA, cepet & ringan',
+    icon: Cpu,
+    badge: 'NVIDIA',
+    badgeColor: 'text-green-400 bg-green-400/10 border-green-400/20',
+    provider: 'nvidia',
   },
   {
     id: 'anthropic/claude-3.5-haiku',
@@ -44,6 +65,7 @@ const MODELS = [
     icon: Zap,
     badge: 'Paid',
     badgeColor: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+    provider: 'openrouter',
   },
   {
     id: 'anthropic/claude-3.5-sonnet',
@@ -52,6 +74,7 @@ const MODELS = [
     icon: Brain,
     badge: 'Paid',
     badgeColor: 'text-violet-400 bg-violet-400/10 border-violet-400/20',
+    provider: 'openrouter',
   },
 ]
 
@@ -90,19 +113,19 @@ export function ModelSelector({ value, onChange, userPlan = 'free', onPaidModelC
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all
-          bg-[#1a1a24] border border-[#2a2a3a] text-[#9090a8] hover:text-[#f0f0f8] hover:border-[#3a3a4a]"
+        className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all
+          bg-[#141310] border border-[#2e2b24] text-[#a09880] hover:text-[#f2ede4] hover:border-[#3a3628]"
       >
-        <Icon size={12} className={isPaidModel && userPlan === 'free' ? 'text-amber-400' : 'text-[#7c6af7]'} />
+        <Icon size={12} className={isPaidModel && userPlan === 'free' ? 'text-amber-400' : 'text-[#d97757]'} />
         <span className="hidden sm:inline">{selected.name}</span>
-        <ChevronDown size={11} className={cn('transition-transform text-[#5a5a72]', open && 'rotate-180')} />
+        <ChevronDown size={11} className={cn('transition-transform text-[#625d4e]', open && 'rotate-180')} />
       </button>
 
       {open && (
-        <div className="absolute top-full mt-2 right-0 w-72 rounded-2xl border border-[#2a2a3a] bg-[#111118] shadow-card z-50 overflow-hidden animate-fade-in">
-          <div className="px-3 py-2.5 border-b border-[#1e1e2a]">
-            <p className="text-[11px] font-medium text-[#5a5a72] uppercase tracking-wider">Pilih Model</p>
-            <p className="text-[10px] text-[#3a3a52] mt-0.5">via OpenRouter</p>
+        <div className="absolute top-full mt-2 right-0 w-72 rounded-2xl border border-[#2e2b24] bg-[#141310] shadow-card z-50 overflow-hidden animate-fade-in">
+          <div className="px-3 py-2.5 border-b border-[#221f1a]">
+            <p className="text-[11px] font-medium text-[#625d4e] uppercase tracking-wider">Pilih Model</p>
+            <p className="text-[10px] text-[#35312a] mt-0.5">OpenRouter & NVIDIA NIM</p>
           </div>
           <div className="p-1.5">
             {MODELS.map((model) => {
@@ -117,19 +140,19 @@ export function ModelSelector({ value, onChange, userPlan = 'free', onPaidModelC
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left',
                     isActive
-                      ? 'bg-[#7c6af7]/10 border border-[#7c6af7]/20'
+                      ? 'bg-[#d97757]/10 border border-[#d97757]/20'
                       : 'hover:bg-white/[0.04] border border-transparent',
                   )}
                 >
                   <div className={cn(
                     'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                    isActive ? 'bg-[#7c6af7]/20' : 'bg-[#1a1a24]',
+                    isActive ? 'bg-[#d97757]/20' : 'bg-[#1c1a16]',
                   )}>
-                    <MIcon size={14} className={isActive ? 'text-[#a78bfa]' : 'text-[#5a5a72]'} />
+                    <MIcon size={14} className={isActive ? 'text-[#e8a87c]' : 'text-[#625d4e]'} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={cn('text-sm font-medium', isActive ? 'text-[#f0f0f8]' : 'text-[#9090a8]')}>
+                      <span className={cn('text-sm font-medium', isActive ? 'text-[#f2ede4]' : 'text-[#a09880]')}>
                         {model.name}
                       </span>
                       <span className={cn('text-[10px] px-1.5 py-0.5 rounded-md border font-medium', model.badgeColor)}>
@@ -137,9 +160,9 @@ export function ModelSelector({ value, onChange, userPlan = 'free', onPaidModelC
                       </span>
                       {isLocked && <Lock size={10} className="text-amber-400" />}
                     </div>
-                    <p className="text-[11px] text-[#5a5a72] mt-0.5">{model.desc}</p>
+                    <p className="text-[11px] text-[#625d4e] mt-0.5">{model.desc}</p>
                   </div>
-                  {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[#7c6af7] flex-shrink-0" />}
+                  {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[#d97757] flex-shrink-0" />}
                 </button>
               )
             })}

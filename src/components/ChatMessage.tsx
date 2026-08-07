@@ -4,22 +4,85 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
 import type { Message } from '@/lib/types'
-import { Copy, Check, User, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import {
+  Copy, Check,
+  Code2, BookOpen, Wrench, Bug, Palette, Sparkles,
+  type LucideIcon,
+} from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
 import { getSkillById } from '@/lib/skills'
 import { getLanguageById } from '@/lib/languages'
+
+const SKILL_ICON_MAP: Record<string, LucideIcon> = {
+  Sparkles, Code2, BookOpen, Wrench, Bug, Palette,
+}
+function SkillIcon({ name, size = 10 }: { name: string; size?: number }) {
+  const Icon = SKILL_ICON_MAP[name] ?? Sparkles
+  return <Icon size={size} />
+}
 
 interface ChatMessageProps {
   message: Message
   isStreaming?: boolean
   langId?: string
+  firstMessage?: boolean   // true for msg index 0 & 1 — gets slide-up-from-bottom entrance
 }
 
-export function ChatMessage({ message, isStreaming, langId = 'id' }: ChatMessageProps) {
+export function ChatMessage({ message, isStreaming, langId = 'id', firstMessage = false }: ChatMessageProps) {
   const isUser = message.role === 'user'
   const [copied, setCopied] = useState(false)
   const skill = message.skillId ? getSkillById(message.skillId) : null
   const lang = getLanguageById(langId)
+
+  /**
+   * Typewriter effect for streaming assistant messages.
+   * We show text up to `displayedLength` chars, advancing by
+   * a few chars per frame so it feels natural and animated.
+   */
+  const [displayedLength, setDisplayedLength] = useState(0)
+  const rafRef = useRef<number | null>(null)
+  const lastRafTime = useRef(0)
+  // chars-per-second; tune here
+  const CHARS_PER_SECOND = 280
+
+  useEffect(() => {
+    if (!isStreaming) {
+      // Not streaming — show full content immediately
+      setDisplayedLength(message.content.length)
+      return
+    }
+
+    const target = message.content.length
+
+    const step = (timestamp: number) => {
+      const elapsed = timestamp - lastRafTime.current
+      if (elapsed > 16) { // ~60fps
+        const charsToAdd = Math.max(1, Math.floor((CHARS_PER_SECOND * elapsed) / 1000))
+        setDisplayedLength((prev) => {
+          const next = Math.min(prev + charsToAdd, target)
+          return next
+        })
+        lastRafTime.current = timestamp
+      }
+      rafRef.current = requestAnimationFrame(step)
+    }
+
+    rafRef.current = requestAnimationFrame(step)
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current)
+    }
+  }, [isStreaming, message.content.length])
+
+  // When message.content grows (new chunks arrive), keep animating
+  useEffect(() => {
+    if (!isStreaming) {
+      setDisplayedLength(message.content.length)
+    }
+  }, [isStreaming, message.content])
+
+  const displayedContent = isStreaming
+    ? message.content.slice(0, displayedLength)
+    : message.content
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content)
@@ -29,34 +92,20 @@ export function ChatMessage({ message, isStreaming, langId = 'id' }: ChatMessage
 
   return (
     <div className={cn(
-      'group flex gap-4 px-6 py-5 animate-fade-in',
+      'group flex gap-4 px-6 py-5',
       isUser ? 'flex-row-reverse' : 'flex-row',
+      firstMessage ? 'msg-first-enter' : 'animate-fade-in',
     )}>
-      {/* Avatar */}
-      <div className="flex-shrink-0 mt-0.5">
-        {isUser ? (
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-glow-sm">
-            <User size={14} className="text-white" />
-          </div>
-        ) : (
-          <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center">
-            <Sparkles size={14} className="text-white" />
-            {isStreaming && (
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#0a0a0f] animate-pulse" />
-            )}
-          </div>
-        )}
-      </div>
-
       {/* Content */}
       <div className={cn('flex flex-col gap-1 max-w-[80%]', isUser && 'items-end')}>
         <div className="flex items-center gap-2 px-1">
-          <span className="text-[11px] font-medium text-[#5a5a72]">
+          <span className="text-[11px] font-medium text-[#625d4e]">
             {isUser ? lang.uiLabel.you : lang.uiLabel.ai}
           </span>
           {skill && skill.id !== 'general' && (
-            <span className={cn('text-[9px] px-1.5 py-0.5 rounded-md border font-medium', skill.color)}>
-              {skill.emoji} {skill.name}
+            <span className={cn('flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md border font-medium', skill.color)}>
+              <SkillIcon name={skill.icon} size={9} />
+              {skill.name}
             </span>
           )}
         </div>
@@ -64,18 +113,19 @@ export function ChatMessage({ message, isStreaming, langId = 'id' }: ChatMessage
         <div className={cn(
           'relative rounded-2xl px-4 py-3',
           isUser
-            ? 'bg-[#7c6af7] text-white rounded-tr-sm shadow-glow-sm'
-            : 'bg-[#16161f] border border-[#2a2a3a] text-[#f0f0f8] rounded-tl-sm',
+            ? 'bg-[#d97757] text-white rounded-tr-sm shadow-glow-sm'
+            : 'bg-[#181613] border border-[#2e2b24] text-[#f2ede4] rounded-tl-sm',
         )}>
           {isUser ? (
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
           ) : (
             <div className="prose-dark">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {message.content}
+                {displayedContent}
               </ReactMarkdown>
+              {/* Blinking cursor while streaming */}
               {isStreaming && (
-                <span className="inline-block w-0.5 h-4 bg-[#7c6af7] ml-0.5 animate-pulse align-middle" />
+                <span className="inline-block w-0.5 h-[1.1em] bg-[#d97757] ml-0.5 align-middle animate-pulse rounded-full" />
               )}
             </div>
           )}
@@ -85,7 +135,7 @@ export function ChatMessage({ message, isStreaming, langId = 'id' }: ChatMessage
         {!isUser && !isStreaming && message.content && (
           <button
             onClick={handleCopy}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100"
+            className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] text-[#625d4e] hover:text-[#a09880] hover:bg-white/5 transition-all opacity-0 group-hover:opacity-100"
           >
             {copied ? (
               <><Check size={11} className="text-emerald-400" /><span className="text-emerald-400">Disalin</span></>

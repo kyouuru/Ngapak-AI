@@ -2,7 +2,12 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { Menu, Sparkles, Code2, BookOpen, Lightbulb, ChefHat } from 'lucide-react'
+import {
+  Menu, Code2, BookOpen, Lightbulb, ChefHat,
+  ArrowUp, Square, Paperclip, Globe, X,
+  FileText, FileCode, Image as ImageIcon,
+} from 'lucide-react'
+import Image from 'next/image'
 import { Sidebar } from './Sidebar'
 import { ChatMessage } from './ChatMessage'
 import { ChatInput } from './ChatInput'
@@ -16,9 +21,27 @@ import type { Message, ChatSession } from '@/lib/types'
 import { getLanguageById } from '@/lib/languages'
 import { GUEST_LIMIT, USER_LIMIT } from '@/lib/rateLimit'
 import { cn } from '@/lib/utils'
-import { buildMessageContent, type ProcessedAttachment } from '@/lib/fileProcessor'
+import {
+  buildMessageContent,
+  processFileAttachment,
+  type ProcessedAttachment,
+} from '@/lib/fileProcessor'
 import { getT } from '@/lib/i18n'
 
+/* ─── file-type icon helper ─────────────────────────────── */
+const ACCEPTED = 'image/*,.txt,.md,.js,.ts,.jsx,.tsx,.py,.rb,.go,.rs,.java,.cpp,.c,.cs,.php,.swift,.kt,.html,.css,.scss,.json,.yaml,.yml,.toml,.xml,.sql,.sh,.bash,.env,.csv'
+
+function AttachFileIcon({ type, name }: { type: string; name: string }) {
+  if (type.startsWith('image/')) return <ImageIcon size={14} className="text-violet-400" />
+  const ext = name.split('.').pop()?.toLowerCase() ?? ''
+  if (['json', 'yaml', 'yml', 'toml', 'xml'].includes(ext)) return <FileCode size={14} className="text-amber-400" />
+  if (['csv'].includes(ext)) return <FileCode size={14} className="text-emerald-400" />
+  if (['js', 'ts', 'jsx', 'tsx', 'py', 'rb', 'go', 'rs', 'java', 'cpp', 'c', 'cs', 'php', 'swift', 'kt', 'html', 'css', 'scss', 'sql', 'sh', 'bash'].includes(ext))
+    return <FileCode size={14} className="text-blue-400" />
+  return <FileText size={14} className="text-[#a09880]" />
+}
+
+/* ─── suggestion chips config ───────────────────────────── */
 const SUGGESTION_ICONS = [Code2, BookOpen, ChefHat, Lightbulb]
 const SUGGESTION_SKILLS = ['code', 'explain', 'general', 'explain']
 
@@ -27,6 +50,236 @@ function generateTitle(content: string) {
   return content.trim().replace(/\s+/g, ' ').slice(0, 40) + (content.length > 40 ? '...' : '')
 }
 
+/* ═══════════════════════════════════════════════════════════
+   NewChatInputBox
+   Composer shown on landing/new-chat state — model, skill,
+   language, file and web-search controls all inline.
+═══════════════════════════════════════════════════════════ */
+interface NewChatInputBoxProps {
+  onSend: (message: string, attachment?: ProcessedAttachment) => void
+  isLoading: boolean
+  disabled?: boolean
+  placeholder?: string
+  footer?: string
+  webSearchEnabled: boolean
+  onToggleWebSearch: () => void
+  fileLabel?: string
+  webLabel?: string
+  webOnLabel?: string
+  inputHint?: string
+  model: string
+  onModelChange: (m: string) => void
+  skillId: string
+  onSkillChange: (s: string) => void
+  langId: string
+  onLangChange: (l: string) => void
+  userPlan: string
+  onPaidModelClick: (name: string) => void
+  pendingInput?: string
+  onPendingInputConsumed: () => void
+}
+
+function NewChatInputBox({
+  onSend, isLoading, disabled = false,
+  placeholder = 'Takon apa bae, inyong siap mbantu...',
+  footer,
+  webSearchEnabled, onToggleWebSearch,
+  fileLabel = 'File', webLabel = 'Web', webOnLabel = 'Web On',
+  inputHint = 'Enter kirim · Shift+Enter baris baru',
+  model, onModelChange, skillId, onSkillChange, langId, onLangChange,
+  userPlan, onPaidModelClick,
+  pendingInput, onPendingInputConsumed,
+}: NewChatInputBoxProps) {
+  const [input, setInput] = useState('')
+  const [attachment, setAttachment] = useState<ProcessedAttachment | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // When a chip sets pendingInput, fill the textarea and focus
+  useEffect(() => {
+    if (pendingInput !== undefined) {
+      setInput(pendingInput)
+      onPendingInputConsumed()
+      setTimeout(() => {
+        textareaRef.current?.focus()
+        const len = pendingInput.length
+        textareaRef.current?.setSelectionRange(len, len)
+      }, 10)
+    }
+  }, [pendingInput, onPendingInputConsumed])
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto'
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`
+    }
+  }, [input])
+
+  const handleSubmit = () => {
+    const trimmed = input.trim()
+    if ((!trimmed && !attachment) || isLoading || disabled || isProcessing) return
+    onSend(trimmed, attachment ?? undefined)
+    setInput('')
+    setAttachment(null)
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSubmit() }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 10 * 1024 * 1024) {
+      setAttachment({ kind: 'error', name: file.name, message: 'File terlalu besar. Maksimal 10MB.' })
+      e.target.value = ''; return
+    }
+    setIsProcessing(true)
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setAttachment(processFileAttachment(file.name, file.type, ev.target?.result as string))
+      setIsProcessing(false)
+    }
+    reader.onerror = () => {
+      setAttachment({ kind: 'error', name: file.name, message: 'Gagal membaca file.' })
+      setIsProcessing(false)
+    }
+    if (file.type.startsWith('image/')) reader.readAsDataURL(file)
+    else reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  const canSend = (input.trim().length > 0 || (!!attachment && attachment.kind !== 'error')) &&
+    !isLoading && !disabled && !isProcessing
+
+  return (
+    <div className="w-full">
+      <div className={cn(
+        'relative rounded-2xl border transition-all duration-200 shadow-card',
+        disabled
+          ? 'bg-[#141310] border-[#221f1a] opacity-60 cursor-not-allowed'
+          : (input.length > 0 || attachment)
+          ? 'bg-[#181613] border-[#d97757]/35 shadow-glow-sm'
+          : 'bg-[#181613] border-[#2e2b24] hover:border-[#3a3628]',
+      )}>
+
+        {/* Attachment preview */}
+        {attachment && (
+          <div className="px-4 pt-3">
+            {attachment.kind === 'error' ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                <X size={12} className="text-red-400 flex-shrink-0" />
+                <span className="text-xs text-red-300 flex-1">{attachment.message}</span>
+                <button onClick={() => setAttachment(null)} className="text-red-400 hover:text-red-300"><X size={12} /></button>
+              </div>
+            ) : attachment.kind === 'image' ? (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1c1a16] border border-[#2e2b24]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={`data:${attachment.mediaType};base64,${attachment.base64}`} alt={attachment.name}
+                  className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-[#2e2b24]" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-[#f2ede4] truncate">{attachment.name}</p>
+                  <p className="text-[10px] text-[#625d4e]">{attachment.sizeKb}KB · {attachment.mediaType.split('/')[1].toUpperCase()}</p>
+                </div>
+                <button onClick={() => setAttachment(null)} className="text-[#625d4e] hover:text-red-400 transition-colors"><X size={13} /></button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1c1a16] border border-[#2e2b24]">
+                <AttachFileIcon type="text" name={attachment.name} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-[#f2ede4] truncate">{attachment.name}</p>
+                  <p className="text-[10px] text-[#625d4e]">{attachment.language} · {attachment.content.length} chars</p>
+                </div>
+                <button onClick={() => setAttachment(null)} className="text-[#625d4e] hover:text-red-400 transition-colors"><X size={13} /></button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Textarea */}
+        <textarea
+          ref={textareaRef}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={isProcessing ? 'Memproses file...' : placeholder}
+          disabled={disabled || isProcessing}
+          rows={1}
+          className="w-full bg-transparent text-[#f2ede4] placeholder-[#4a4538] text-sm leading-relaxed
+            resize-none outline-none px-4 pt-4 pb-14 min-h-[60px] max-h-[200px] disabled:cursor-not-allowed"
+        />
+
+        {/* Bottom toolbar */}
+        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 pb-3 pt-1 border-t border-[#221f1a]">
+          <div className="flex items-center gap-1 flex-wrap">
+            <ModelSelector value={model} onChange={onModelChange} userPlan={userPlan} onPaidModelClick={onPaidModelClick} />
+            <SkillSelector value={skillId} onChange={onSkillChange} />
+            <div className="hidden md:block">
+              <LanguageSelector value={langId} onChange={onLangChange} />
+            </div>
+            <input ref={fileInputRef} type="file" accept={ACCEPTED} className="hidden" onChange={handleFileChange} />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled || isProcessing}
+              className={cn(
+                'flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] transition-all',
+                attachment && attachment.kind !== 'error'
+                  ? 'text-[#d97757] bg-[#d97757]/10 border border-[#d97757]/20'
+                  : 'text-[#625d4e] hover:text-[#a09880] hover:bg-white/5',
+              )}
+              title="Upload gambar atau file kode"
+            >
+              <Paperclip size={13} />
+              <span className="hidden sm:inline">{isProcessing ? 'Loading...' : fileLabel}</span>
+            </button>
+            <button
+              onClick={onToggleWebSearch}
+              disabled={disabled}
+              className={cn(
+                'flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium transition-all',
+                webSearchEnabled
+                  ? 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20'
+                  : 'text-[#625d4e] hover:text-[#a09880] hover:bg-white/5',
+              )}
+              title={webSearchEnabled ? 'Web search aktif' : 'Aktifkan web search'}
+            >
+              <Globe size={13} />
+              <span className="hidden sm:inline">{webSearchEnabled ? webOnLabel : webLabel}</span>
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className="text-[10px] text-[#35312a] hidden sm:block">{isLoading ? '' : inputHint}</span>
+            <button
+              onClick={isLoading ? () => {} : handleSubmit}
+              disabled={!isLoading && !canSend}
+              className={cn(
+                'w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150',
+                isLoading
+                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                  : canSend
+                  ? 'bg-[#d97757] text-white hover:bg-[#c4663e] shadow-glow-sm'
+                  : 'bg-[#221f1a] text-[#35312a] cursor-not-allowed border border-[#2e2b24]',
+              )}
+            >
+              {isLoading ? <Square size={13} /> : <ArrowUp size={15} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-center text-[10px] text-[#35312a] mt-2.5">
+        {footer ?? 'Ngapak AI bisa membuat kesalahan. Periksa informasi penting ya!'}
+      </p>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ChatPage — main shell
+═══════════════════════════════════════════════════════════ */
 export function ChatPage() {
   const { data: session } = useSession()
   const isLoggedIn = !!session?.user
@@ -46,6 +299,7 @@ export function ChatPage() {
   const [webSearch, setWebSearch] = useState(false)
   const [upgradeReason, setUpgradeReason] = useState<'model' | 'vision' | 'limit' | null>(null)
   const [upgradeModelName, setUpgradeModelName] = useState('')
+  const [pendingInput, setPendingInput] = useState<string | undefined>(undefined)
   const userPlan = 'free' as const
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -55,7 +309,6 @@ export function ChatPage() {
   const t = getT(langId)
   const lang = getLanguageById(langId)
 
-  // Suggestions dari i18n
   const SUGGESTIONS = [
     { icon: SUGGESTION_ICONS[0]!, text: t.suggCoding, label: t.suggCodingLabel, skillId: SUGGESTION_SKILLS[0]! },
     { icon: SUGGESTION_ICONS[1]!, text: t.suggLearn,  label: t.suggLearnLabel,  skillId: SUGGESTION_SKILLS[1]! },
@@ -66,10 +319,7 @@ export function ChatPage() {
   const fetchLimit = useCallback(async () => {
     try {
       const res = await fetch('/api/limit')
-      if (res.ok) {
-        const data = await res.json()
-        setLimitUsed(data.used)
-      }
+      if (res.ok) { const data = await res.json(); setLimitUsed(data.used) }
     } catch {}
   }, [])
 
@@ -126,8 +376,8 @@ export function ChatPage() {
 
     const displayContent = attachment
       ? attachment.kind === 'image'
-        ? (content ? `${content}\n\n📎 ${attachment.name}` : `📎 ${attachment.name}`)
-        : (content ? `${content}\n\n📄 ${attachment.name}` : `📄 ${attachment.name}`)
+        ? (content ? `${content}\n\n[Gambar: ${attachment.name}]` : `[Gambar: ${attachment.name}]`)
+        : (content ? `${content}\n\n[File: ${attachment.name}]` : `[File: ${attachment.name}]`)
       : content
 
     const apiContent = buildMessageContent(content, attachment ?? null)
@@ -168,40 +418,29 @@ export function ChatPage() {
           ? { ...s, userMessageCount: Math.max(0, (s.userMessageCount ?? 1) - 1) } : s))
         return
       }
-
       if (!res.ok) throw new Error('Request failed')
 
       const remaining = res.headers.get('X-RateLimit-Remaining')
       const limit = res.headers.get('X-RateLimit-Limit')
-      if (remaining !== null && limit !== null) {
-        setLimitUsed(parseInt(limit) - parseInt(remaining))
-      }
+      if (remaining !== null && limit !== null) setLimitUsed(parseInt(limit) - parseInt(remaining))
 
       const reader = res.body?.getReader()
       const decoder = new TextDecoder()
       let fullText = ''
-
       if (reader) {
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-          const lines = decoder.decode(value).split('\n')
-          for (const line of lines) {
+          for (const line of decoder.decode(value).split('\n')) {
             if (!line.startsWith('data: ')) continue
-            const data = line.slice(6).trim()
-            if (data === '[DONE]') break
-            try {
-              const parsed = JSON.parse(data) as { text: string }
-              fullText += parsed.text
-              setStreamingContent(fullText)
-            } catch {}
+            const d = line.slice(6).trim()
+            if (d === '[DONE]') break
+            try { const p = JSON.parse(d) as { text: string }; fullText += p.text; setStreamingContent(fullText) } catch {}
           }
         }
       }
 
-      const assistantMsg: Message = {
-        id: generateId(), role: 'assistant', content: fullText, createdAt: new Date(), skillId,
-      }
+      const assistantMsg: Message = { id: generateId(), role: 'assistant', content: fullText, createdAt: new Date(), skillId }
       setSessions((prev) => prev.map((s) => s.id === sessionId
         ? { ...s, messages: [...s.messages, assistantMsg], updatedAt: new Date() } : s))
     } catch (err) {
@@ -210,7 +449,7 @@ export function ChatPage() {
           ? { ...s, userMessageCount: Math.max(0, (s.userMessageCount ?? 1) - 1) } : s))
         const errMsg: Message = {
           id: generateId(), role: 'assistant',
-          content: '⚠️ Ada masalah teknis. Coba lagi ya!',
+          content: 'Ada masalah teknis. Coba lagi ya!',
           createdAt: new Date(),
         }
         setSessions((prev) => prev.map((s) => s.id === sessionId
@@ -226,14 +465,44 @@ export function ChatPage() {
   const messages = activeSession?.messages ?? []
   const isEmpty = messages.length === 0 && !isLoading
 
+  // Keep greeting rendered during exit animation (400ms)
+  const [showGreeting, setShowGreeting] = useState(true)
+  const [greetingExiting, setGreetingExiting] = useState(false)
+  const greetingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (!isEmpty) {
+      // Trigger exit animation, then unmount after it completes
+      setGreetingExiting(true)
+      greetingTimerRef.current = setTimeout(() => {
+        setShowGreeting(false)
+        setGreetingExiting(false)
+      }, 420)
+    } else {
+      // Back to empty state (new chat) — show greeting again
+      if (greetingTimerRef.current) clearTimeout(greetingTimerRef.current)
+      setGreetingExiting(false)
+      setShowGreeting(true)
+    }
+    return () => {
+      if (greetingTimerRef.current) clearTimeout(greetingTimerRef.current)
+    }
+  }, [isEmpty])
+
+  const greetingLine = langId === 'ngapak'
+    ? 'Piye kabare?' : langId === 'jawa'
+    ? 'Sugeng rawuh!' : langId === 'sunda'
+    ? 'Wilujeng sumping!' : langId === 'english'
+    ? 'What can I help with?'
+    : 'Ana sing bisa tak bejang?'
+
+  const greetingUser = isLoggedIn && session?.user?.name
+    ? `, ${session.user.name.split(' ')[0]}` : ''
+
   return (
-    <div className="flex h-screen bg-[#0a0a0f] overflow-hidden">
-      {showLimitModal && (
-        <LimitModal isLoggedIn={isLoggedIn} onClose={() => setShowLimitModal(false)} t={t} />
-      )}
-      {upgradeReason && (
-        <UpgradePrompt reason={upgradeReason} modelName={upgradeModelName} onClose={() => setUpgradeReason(null)} />
-      )}
+    <div className="flex h-screen bg-[#0e0d0b] overflow-hidden">
+      {showLimitModal && <LimitModal isLoggedIn={isLoggedIn} onClose={() => setShowLimitModal(false)} t={t} />}
+      {upgradeReason && <UpgradePrompt reason={upgradeReason} modelName={upgradeModelName} onClose={() => setUpgradeReason(null)} />}
 
       <Sidebar
         sessions={sessions}
@@ -254,140 +523,169 @@ export function ChatPage() {
       />
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Header */}
-        <header className="flex items-center gap-2 px-4 py-3 border-b border-[#1e1e2a] bg-[#0a0a0f]/80 backdrop-blur-xl z-10 flex-shrink-0">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="md:hidden p-2 rounded-xl text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5 transition-all flex-shrink-0"
-          >
+        {/* Mobile header */}
+        <header className="flex md:hidden items-center gap-2 px-4 py-3 border-b border-[#221f1a] bg-[#0e0d0b]/90 backdrop-blur-xl z-10 flex-shrink-0">
+          <button onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-xl text-[#625d4e] hover:text-[#a09880] hover:bg-white/5 transition-all flex-shrink-0">
             <Menu size={18} />
           </button>
-
           <div className="flex-1 min-w-0">
-            {activeSession ? (
-              <div>
-                <h2 className="text-sm font-medium text-[#f0f0f8] truncate">{activeSession.title}</h2>
-                <p className="text-[10px] text-[#5a5a72]">
-                  {activeSession.messages.length} {t.messages} · {' '}
-                  <span className={cn(
-                    (limitMax - limitUsed) <= 1 ? 'text-red-400'
-                      : (limitMax - limitUsed) <= 3 ? 'text-amber-400'
-                      : 'text-[#5a5a72]',
-                  )}>
-                    {isLimitReached ? t.limitReached : `${limitMax - limitUsed} ${t.remaining}`}
-                  </span>
-                </p>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center flex-shrink-0">
-                  <Sparkles size={11} className="text-white" />
-                </div>
-                <span className="text-sm font-medium text-[#9090a8]">Ngapak AI</span>
-              </div>
-            )}
+            {activeSession
+              ? <h2 className="text-sm font-medium text-[#f2ede4] truncate">{activeSession.title}</h2>
+              : <span className="text-sm font-medium text-[#a09880]">Ngapak AI</span>}
           </div>
-
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <LanguageSelector value={langId} onChange={setLangId} />
-            <SkillSelector value={skillId} onChange={setSkillId} />
-            <ModelSelector
-              value={model}
-              onChange={setModel}
-              userPlan={userPlan}
-              onPaidModelClick={(name) => { setUpgradeModelName(name); setUpgradeReason('model') }}
-            />
-          </div>
+          <LanguageSelector value={langId} onChange={setLangId} />
         </header>
+
+
 
         {/* Limit banner */}
         {isLimitReached && (
           <div className="flex items-center gap-2.5 px-4 py-2.5 bg-red-500/10 border-b border-red-500/20 flex-shrink-0">
-            <span className="text-xs text-red-300 flex-1">
-              {isLoggedIn ? t.limitUserMsg : t.limitGuestMsg}
-            </span>
+            <span className="text-xs text-red-300 flex-1">{isLoggedIn ? t.limitUserMsg : t.limitGuestMsg}</span>
             {!isLoggedIn && (
-              <button
-                onClick={() => setShowLimitModal(true)}
-                className="text-xs px-3 py-1 rounded-lg bg-[#7c6af7]/20 hover:bg-[#7c6af7]/30 text-[#a78bfa] border border-[#7c6af7]/30 transition-all flex-shrink-0"
-              >
+              <button onClick={() => setShowLimitModal(true)}
+                className="text-xs px-3 py-1 rounded-lg bg-[#d97757]/20 hover:bg-[#d97757]/30 text-[#e8a87c] border border-[#d97757]/30 transition-all flex-shrink-0">
                 {t.loginGoogle}
               </button>
             )}
           </div>
         )}
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto">
-          {isEmpty ? (
-            <div className="flex flex-col items-center justify-center h-full px-4 py-16 animate-fade-in">
-              <div className="relative mb-8">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-500 via-indigo-500 to-blue-500 flex items-center justify-center shadow-glow-md">
-                  <Sparkles size={36} className="text-white" />
+        {/* Content area */}
+        <div className="flex-1 overflow-y-auto relative">
+          {/* ── GREETING / LANDING (animates out when chat starts) ── */}
+          {showGreeting && (
+            <div className={cn(
+              'absolute inset-0 flex flex-col items-center justify-center px-4 py-12',
+              greetingExiting ? 'greeting-exit pointer-events-none' : 'animate-fade-in',
+            )}>
+              <div className="w-full max-w-[720px] flex flex-col items-center">
+
+                {/* Greeting */}
+                <div className="text-center mb-8 mt-4">
+                  {/* Logo above greeting */}
+                  <div className="flex justify-center mb-5">
+                    <Image
+                      src="/logo.png"
+                      alt="Ngapak AI"
+                      width={160}
+                      height={160}
+                      className="object-contain"
+                      style={{ filter: 'drop-shadow(0 0 24px rgba(217,119,87,0.5))' }}
+                      priority
+                    />
+                  </div>
+                  <h1 className="font-display text-[2rem] sm:text-[2.4rem] leading-tight text-[#f2ede4] tracking-tight mb-2">
+                    {greetingLine}
+                    {greetingUser && <span className="text-gradient">{greetingUser}</span>}
+                  </h1>
+                  <p className="text-sm text-[#625d4e] mt-1">{t.welcomeSubtitle}</p>
+                  {!isLoggedIn && (
+                    <p className="text-xs text-[#4a4538] mt-1">
+                      Guest: {GUEST_LIMIT} chat/hari · Login Google: {USER_LIMIT} chat/hari
+                    </p>
+                  )}
                 </div>
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-violet-500 to-blue-500 blur-2xl opacity-20 -z-10 scale-150" />
-              </div>
-              <h2 className="text-3xl font-bold text-gradient mb-2">Ngapak AI</h2>
-              <p className="text-[#9090a8] text-center max-w-sm mb-1 text-sm">
-                {t.welcomeSubtitle}
-              </p>
-              <p className="text-[#5a5a72] text-center max-w-sm mb-10 text-xs">
-                {isLoggedIn
-                  ? `${limitMax - limitUsed} ${t.remaining}`
-                  : `Guest: ${GUEST_LIMIT} ${t.welcomeHint} · Login Google: ${USER_LIMIT} ${t.welcomeHint}`}
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl">
-                {SUGGESTIONS.map((s) => {
-                  const Icon = s.icon
-                  return (
-                    <button
-                      key={s.skillId + s.label}
-                      onClick={() => { setSkillId(s.skillId); sendMessage(s.text) }}
-                      disabled={isLimitReached}
-                      className="group flex items-start gap-3 p-4 rounded-2xl text-left transition-all duration-200
-                        bg-[#16161f] border border-[#2a2a3a] hover:border-[#7c6af7]/40 hover:bg-[#1a1a28]
-                        hover:shadow-glow-sm disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                      <div className="w-8 h-8 rounded-xl bg-[#7c6af7]/10 border border-[#7c6af7]/20 flex items-center justify-center flex-shrink-0 group-hover:bg-[#7c6af7]/20 transition-colors">
-                        <Icon size={14} className="text-[#7c6af7]" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-medium text-[#5a5a72] mb-1 uppercase tracking-wider">{s.label}</p>
-                        <p className="text-xs text-[#9090a8] group-hover:text-[#f0f0f8] transition-colors leading-relaxed">{s.text}</p>
-                      </div>
-                    </button>
-                  )
-                })}
+
+                {/* Input composer */}
+                <div className="w-full">
+                  <NewChatInputBox
+                    onSend={sendMessage}
+                    isLoading={isLoading}
+                    disabled={isLimitReached}
+                    placeholder={isLimitReached ? t.limitReached : 'Takon apa bae, inyong siap mbantu...'}
+                    footer={lang.uiLabel.footer}
+                    webSearchEnabled={webSearch}
+                    onToggleWebSearch={() => setWebSearch((v) => !v)}
+                    fileLabel={t.fileBtn}
+                    webLabel={t.webBtn}
+                    webOnLabel={t.webBtnOn}
+                    inputHint={t.inputHint}
+                    model={model}
+                    onModelChange={setModel}
+                    skillId={skillId}
+                    onSkillChange={setSkillId}
+                    langId={langId}
+                    onLangChange={setLangId}
+                    userPlan={userPlan}
+                    onPaidModelClick={(name) => { setUpgradeModelName(name); setUpgradeReason('model') }}
+                    pendingInput={pendingInput}
+                    onPendingInputConsumed={() => setPendingInput(undefined)}
+                  />
+                </div>
+
+                {/* Suggestion chips */}
+                <div className="flex flex-wrap gap-2 justify-center mt-4 w-full px-1">
+                  {SUGGESTIONS.map((s) => {
+                    const Icon = s.icon
+                    return (
+                      <button
+                        key={s.skillId + s.label}
+                        onClick={() => { setSkillId(s.skillId); setPendingInput(s.text) }}
+                        disabled={isLimitReached}
+                        className={cn(
+                          'flex items-center gap-2 px-3.5 py-2 rounded-full border text-xs font-medium',
+                          'transition-all duration-150',
+                          'border-[#2e2b24] text-[#a09880] hover:border-[#d97757]/40 hover:text-[#f2ede4] hover:bg-[#d97757]/[0.06]',
+                          'disabled:opacity-40 disabled:cursor-not-allowed',
+                        )}
+                      >
+                        <Icon size={12} className="text-[#d97757] flex-shrink-0" />
+                        <span>{s.label}</span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             </div>
-          ) : (
-            <div className="max-w-3xl mx-auto py-4">
-              {messages.map((msg) => <ChatMessage key={msg.id} message={msg} langId={langId} />)}
-              {isLoading && streamingContent ? (
-                <ChatMessage
-                  message={{ id: 'streaming', role: 'assistant', content: streamingContent, createdAt: new Date() }}
-                  isStreaming langId={langId}
-                />
-              ) : isLoading ? <TypingIndicator /> : null}
-              <div ref={messagesEndRef} className="h-4" />
+          )}
+
+          {/* ── CHAT MESSAGES (fades in when first message arrives) ── */}
+          {!isEmpty && (
+            <div className="min-h-full flex flex-col justify-end">
+              <div className={cn(
+                'max-w-3xl w-full mx-auto py-4',
+                showGreeting ? 'opacity-0' : 'messages-enter',
+              )}>
+                {messages.map((msg, i) => (
+                  <ChatMessage
+                    key={msg.id}
+                    message={msg}
+                    langId={langId}
+                    firstMessage={i < 2}
+                  />
+                ))}
+                {isLoading && streamingContent ? (
+                  <ChatMessage
+                    message={{ id: 'streaming', role: 'assistant', content: streamingContent, createdAt: new Date() }}
+                    isStreaming
+                    langId={langId}
+                  />
+                ) : isLoading ? <TypingIndicator /> : null}
+                <div ref={messagesEndRef} className="h-4" />
+              </div>
             </div>
           )}
         </div>
 
-        <ChatInput
-          onSend={sendMessage}
-          isLoading={isLoading}
-          onStop={() => abortRef.current?.abort()}
-          placeholder={isLimitReached ? t.limitReached : lang.uiLabel.placeholder}
-          disabled={isLimitReached}
-          footer={lang.uiLabel.footer}
-          webSearchEnabled={webSearch}
-          onToggleWebSearch={() => setWebSearch((v) => !v)}
-          fileLabel={t.fileBtn}
-          webLabel={t.webBtn}
-          webOnLabel={t.webBtnOn}
-          inputHint={t.inputHint}
-        />
+        {/* Sticky input for active chat (show once greeting starts exiting) */}
+        {(!isEmpty || greetingExiting) && (
+          <ChatInput
+            onSend={sendMessage}
+            isLoading={isLoading}
+            onStop={() => abortRef.current?.abort()}
+            placeholder={isLimitReached ? t.limitReached : lang.uiLabel.placeholder}
+            disabled={isLimitReached}
+            footer={lang.uiLabel.footer}
+            webSearchEnabled={webSearch}
+            onToggleWebSearch={() => setWebSearch((v) => !v)}
+            fileLabel={t.fileBtn}
+            webLabel={t.webBtn}
+            webOnLabel={t.webBtnOn}
+            inputHint={t.inputHint}
+          />
+        )}
       </div>
     </div>
   )

@@ -11,10 +11,15 @@ export const metadata: Metadata = {
   description: 'Ngapak AI iku asisten AI sing pinter lan ramah, nganggo dialek Banyumas sing khas. Takon apa bae, inyong siap mbantu!',
   keywords: ['AI', 'chatbot', 'Banyumas', 'Ngapak', 'asisten AI', 'Indonesia', 'Claude'],
   authors: [{ name: 'Ngapak AI' }],
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
   openGraph: {
     title: 'Ngapak AI',
     description: 'Asisten AI saka tlatah Banyumas — Powered by Claude',
     type: 'website',
+    images: [{ url: '/logo.png', width: 512, height: 512, alt: 'Ngapak AI' }],
   },
 }
 
@@ -25,11 +30,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="h-full antialiased bg-[#0a0a0f]">
+      <body className="h-full antialiased bg-[#0e0d0b]">
         <Providers>{children}</Providers>
       </body>
     </html>

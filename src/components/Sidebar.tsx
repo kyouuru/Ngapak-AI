@@ -1,11 +1,16 @@
 'use client'
 
-import { Plus, MessageSquare, Trash2, X, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react'
+import Image from 'next/image'
+import {
+  Plus, MessageSquare, Trash2, X,
+  PanelLeftClose, PanelLeftOpen,
+  Zap, ArrowUpRight,
+} from 'lucide-react'
+import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import type { ChatSession } from '@/lib/types'
 import { LimitBadge } from './LimitBadge'
 import { AuthButton } from './AuthButton'
-import { PlanBadge } from './PlanBadge'
 import { getT } from '@/lib/i18n'
 import type { PlanId } from '@/lib/plans'
 
@@ -15,9 +20,9 @@ interface SidebarProps {
   onNewChat: () => void
   onSelectSession: (id: string) => void
   onDeleteSession: (id: string) => void
-  isOpen: boolean
+  isOpen: boolean          // mobile drawer open
   onClose: () => void
-  collapsed: boolean
+  collapsed: boolean       // desktop icon-only mode
   onToggleCollapse: () => void
   limitUsed: number
   limitMax: number
@@ -27,169 +32,256 @@ interface SidebarProps {
   userPlan?: PlanId
 }
 
+function groupSessions(sessions: ChatSession[]) {
+  const now = new Date()
+  const today: ChatSession[] = []
+  const yesterday: ChatSession[] = []
+  const week: ChatSession[] = []
+  const older: ChatSession[] = []
+  for (const s of sessions) {
+    const diff = Math.floor((now.getTime() - new Date(s.updatedAt).getTime()) / 86_400_000)
+    if (diff < 1) today.push(s)
+    else if (diff < 2) yesterday.push(s)
+    else if (diff < 7) week.push(s)
+    else older.push(s)
+  }
+  return { today, yesterday, week, older }
+}
+
+/** Logo: fills its container completely, rounded, with warm glow */
+function Logo({ size }: { size: number }) {
+  return (
+    <div
+      style={{ width: size, height: size, borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}
+    >
+      <Image
+        src="/logo.png"
+        alt="Ngapak AI"
+        width={size}
+        height={size}
+        className="object-cover"
+        style={{
+          width: size,
+          height: size,
+          filter: 'drop-shadow(0 0 8px rgba(217,119,87,0.6))',
+        }}
+        priority
+      />
+    </div>
+  )
+}
+
 export function Sidebar({
   sessions, activeSessionId, onNewChat, onSelectSession, onDeleteSession,
-  isOpen, onClose, collapsed, onToggleCollapse, limitUsed, limitMax, isLoggedIn, user, langId, userPlan = 'free',
+  isOpen, onClose, collapsed, onToggleCollapse,
+  limitUsed, limitMax, isLoggedIn, user, langId, userPlan = 'free',
 }: SidebarProps) {
   const t = getT(langId)
+  const { today, yesterday, week, older } = groupSessions(sessions)
+
+  const GroupLabel = ({ label }: { label: string }) => (
+    <p className="text-[10px] font-medium text-[#4a4538] uppercase tracking-wider px-2 pt-3 pb-1">
+      {label}
+    </p>
+  )
+
+  const SessionItem = ({ session }: { session: ChatSession }) => {
+    const isActive = activeSessionId === session.id
+    return (
+      <div
+        onClick={(e) => { e.stopPropagation(); onSelectSession(session.id) }}
+        className={cn(
+          'group flex items-center rounded-xl cursor-pointer transition-all duration-150',
+          collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2',
+          isActive
+            ? 'bg-[#d97757]/10 border border-[#d97757]/20'
+            : 'hover:bg-white/[0.04] border border-transparent',
+        )}
+        title={collapsed ? session.title : undefined}
+      >
+        <MessageSquare
+          size={13}
+          className={cn('flex-shrink-0 transition-colors', isActive ? 'text-[#d97757]' : 'text-[#4a4538]')}
+        />
+        {!collapsed && (
+          <>
+            <span className={cn('flex-1 text-xs truncate', isActive ? 'text-[#f2ede4]' : 'text-[#a09880]')}>
+              {session.title}
+            </span>
+            <button
+              onClick={(e) => { e.stopPropagation(); onDeleteSession(session.id) }}
+              className="opacity-0 group-hover:opacity-100 text-[#4a4538] hover:text-red-400 transition-all p-0.5 rounded flex-shrink-0"
+            >
+              <Trash2 size={11} />
+            </button>
+          </>
+        )}
+      </div>
+    )
+  }
+
+  // ─── Expanded width on desktop: 268px | Collapsed: 60px
+  // ─── On mobile: always full 268px width, toggled via translate-x
   return (
     <>
-      {/* Mobile overlay backdrop */}
+      {/* Mobile backdrop — only when drawer is open */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-black/60 z-20 md:hidden backdrop-blur-sm"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 md:hidden"
           onClick={onClose}
         />
       )}
 
-      <aside className={cn(
-        'fixed md:relative top-0 left-0 h-full flex flex-col z-30 transition-all duration-300 ease-in-out',
-        'border-r border-[#1e1e2a] bg-[#0d0d14]',
-        // Mobile: slide in/out
-        isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
-        // Desktop: collapsed = narrow, expanded = wide
-        collapsed ? 'md:w-[60px]' : 'md:w-64',
-        'w-64', // mobile selalu lebar
-      )}>
-
-        {/* Header / Logo */}
+      <aside
+        onClick={collapsed ? onToggleCollapse : undefined}
+        className={cn(
+          'flex flex-col bg-[#0a0908] border-r border-[#221f1a] overflow-hidden',
+          'transition-[width,transform] duration-300 ease-in-out flex-shrink-0',
+          'md:relative md:translate-x-0 md:h-full',
+          collapsed ? 'md:w-[60px]' : 'md:w-[268px]',
+          'fixed top-0 left-0 z-30 h-full w-[268px]',
+          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+          collapsed && 'cursor-pointer',
+        )}
+      >
+        {/* ── Header ── */}
         <div className={cn(
-          'flex items-center border-b border-[#1e1e2a] flex-shrink-0',
-          collapsed ? 'justify-center px-0 py-4' : 'justify-between px-4 py-4',
+          'flex items-center h-14 border-b border-[#221f1a] flex-shrink-0 transition-all duration-300',
+          collapsed ? 'justify-center px-2' : 'justify-between px-3 gap-2',
         )}>
-          {!collapsed && (
-            <div className="flex items-center gap-3">
-              <div className="relative w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-glow-sm flex-shrink-0">
-                <Sparkles size={15} className="text-white" />
-              </div>
-              <div>
-                <h1 className="text-sm font-semibold text-[#f0f0f8] leading-none">Ngapak AI</h1>
-                <p className="text-[10px] text-[#5a5a72] mt-0.5">Powered by Danixyz</p>
-              </div>
+          {/* Logo + name (hidden when collapsed) */}
+          <div className={cn(
+            'flex items-center gap-2.5 overflow-hidden transition-all duration-300',
+            collapsed ? 'w-0 opacity-0 pointer-events-none' : 'flex-1 opacity-100',
+          )}>
+            <div className="flex-shrink-0 flex items-center justify-center">
+              <Logo size={40} />
             </div>
-          )}
-
-          {collapsed && (
-            <div className="relative w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-glow-sm">
-              <Sparkles size={15} className="text-white" />
+            <div className="min-w-0">
+              <h1 className="text-sm font-semibold text-[#f2ede4] leading-none whitespace-nowrap">Ngapak AI</h1>
+              <p className="text-[10px] text-[#4a4538] mt-0.5 whitespace-nowrap">Saka tlatah Banyumas</p>
             </div>
-          )}
+          </div>
 
           {/* Desktop collapse toggle */}
           <button
-            onClick={onToggleCollapse}
-            className={cn(
-              'hidden md:flex items-center justify-center w-7 h-7 rounded-lg text-[#5a5a72] hover:text-[#9090a8] hover:bg-white/5 transition-all flex-shrink-0',
-              collapsed && 'mt-2',
-            )}
+            onClick={(e) => { e.stopPropagation(); onToggleCollapse() }}
+            className="hidden md:flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0
+              text-[#4a4538] hover:text-[#a09880] hover:bg-white/5 transition-all"
             title={collapsed ? 'Buka sidebar' : 'Minimize sidebar'}
           >
-            {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+            {collapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
           </button>
 
-          {/* Mobile close */}
+          {/* Mobile close button */}
           <button
             onClick={onClose}
-            className="md:hidden text-[#5a5a72] hover:text-[#9090a8] transition-colors p-1 rounded-lg hover:bg-white/5"
+            className="md:hidden flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0
+              text-[#4a4538] hover:text-[#a09880] hover:bg-white/5 transition-all"
           >
             <X size={16} />
           </button>
         </div>
 
-        {/* New Chat Button */}
+        {/* ── New Chat ── */}
         <div className={cn('py-3 flex-shrink-0', collapsed ? 'px-2' : 'px-3')}>
           <button
-            onClick={onNewChat}
+            onClick={(e) => { e.stopPropagation(); onNewChat() }}
             className={cn(
-              'flex items-center rounded-xl text-sm font-medium transition-all duration-200 group',
-              'bg-[#7c6af7]/10 hover:bg-[#7c6af7]/20 text-[#a78bfa] border border-[#7c6af7]/20 hover:border-[#7c6af7]/40',
-              collapsed
-                ? 'w-full justify-center p-2.5'
-                : 'w-full gap-2.5 px-3 py-2.5',
+              'flex items-center rounded-xl text-sm font-medium transition-all duration-150 group',
+              'bg-[#d97757]/10 hover:bg-[#d97757]/18 text-[#d97757] border border-[#d97757]/20 hover:border-[#d97757]/35',
+              collapsed ? 'w-full justify-center p-2.5' : 'w-full gap-2.5 px-3 py-2.5',
             )}
-            title={collapsed ? 'Obrolan Anyar' : undefined}
+            title={collapsed ? t.newChat : undefined}
           >
-            <Plus size={15} className="group-hover:rotate-90 transition-transform duration-200 flex-shrink-0" />
+            <Plus size={14} className="group-hover:rotate-90 transition-transform duration-200 flex-shrink-0" />
             {!collapsed && <span>{t.newChat}</span>}
           </button>
         </div>
 
-        {/* Sessions List */}
-        <div className={cn('flex-1 overflow-y-auto pb-3 space-y-0.5', collapsed ? 'px-2' : 'px-3')}>
+        {/* ── Sessions list ── */}
+        <div className={cn('flex-1 overflow-y-auto pb-3 min-h-0', collapsed ? 'px-2' : 'px-3')}>
           {sessions.length === 0 ? (
             !collapsed && (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="w-10 h-10 rounded-xl bg-[#1a1a24] flex items-center justify-center mb-3">
-                  <MessageSquare size={16} className="text-[#5a5a72]" />
+              <div className={cn(
+                'flex flex-col items-center justify-center py-10 text-center',
+                'transition-[opacity] duration-200 delay-[180ms]',
+                collapsed ? 'opacity-0' : 'opacity-100',
+              )}>
+                <div className="w-9 h-9 rounded-xl bg-[#141310] flex items-center justify-center mb-3">
+                  <MessageSquare size={15} className="text-[#4a4538]" />
                 </div>
-                <p className="text-xs text-[#5a5a72]">{t.noChats}</p>
-                <p className="text-xs text-[#3a3a52] mt-1">{t.noChatsDesc}</p>
+                <p className="text-xs text-[#4a4538]">{t.noChats}</p>
+                <p className="text-xs text-[#35312a] mt-1">{t.noChatsDesc}</p>
               </div>
             )
           ) : (
             <>
-              {!collapsed && (
-                <p className="text-[10px] font-medium text-[#5a5a72] uppercase tracking-wider px-2 py-2">
-                  {t.history}
-                </p>
-              )}
-              {sessions.map((session) => {
-                const isActive = activeSessionId === session.id
-                return (
-                  <div
-                    key={session.id}
-                    onClick={() => onSelectSession(session.id)}
-                    className={cn(
-                      'group flex items-center rounded-xl cursor-pointer transition-all duration-150',
-                      collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2.5',
-                      isActive
-                        ? 'bg-[#7c6af7]/15 border border-[#7c6af7]/25'
-                        : 'hover:bg-white/[0.04] border border-transparent',
-                    )}
-                    title={collapsed ? session.title : undefined}
-                  >
-                    <MessageSquare
-                      size={13}
-                      className={cn('flex-shrink-0', isActive ? 'text-[#7c6af7]' : 'text-[#5a5a72]')}
-                    />
-                    {!collapsed && (
-                      <>
-                        <span className={cn(
-                          'flex-1 text-xs truncate',
-                          isActive ? 'text-[#f0f0f8]' : 'text-[#9090a8]',
-                        )}>
-                          {session.title}
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onDeleteSession(session.id) }}
-                          className="opacity-0 group-hover:opacity-100 text-[#5a5a72] hover:text-red-400 transition-all p-0.5 rounded flex-shrink-0"
-                        >
-                          <Trash2 size={11} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )
-              })}
+              {today.length > 0 && <>
+                {!collapsed && <GroupLabel label="Hari ini" />}
+                {today.map((s) => <SessionItem key={s.id} session={s} />)}
+              </>}
+              {yesterday.length > 0 && <>
+                {!collapsed && <GroupLabel label="Kemarin" />}
+                {yesterday.map((s) => <SessionItem key={s.id} session={s} />)}
+              </>}
+              {week.length > 0 && <>
+                {!collapsed && <GroupLabel label="7 hari terakhir" />}
+                {week.map((s) => <SessionItem key={s.id} session={s} />)}
+              </>}
+              {older.length > 0 && <>
+                {!collapsed && <GroupLabel label="Lebih lama" />}
+                {older.map((s) => <SessionItem key={s.id} session={s} />)}
+              </>}
             </>
           )}
         </div>
 
-        {/* Footer */}
-        {!collapsed && (
-          <div className="px-4 py-4 border-t border-[#1e1e2a] flex-shrink-0 space-y-3">
-            <PlanBadge plan={userPlan} />
+        {/* ── Footer ── */}
+        {/* Always rendered — opacity delayed so content fades in AFTER width animation */}
+        <div className="border-t border-[#221f1a] flex-shrink-0">
+          {/* Expanded footer */}
+          <div
+            className={cn(
+              'px-4 pt-3 pb-4 space-y-2.5 transition-[opacity,transform] duration-200',
+              collapsed
+                ? 'opacity-0 pointer-events-none delay-0 -translate-x-2'
+                : 'opacity-100 pointer-events-auto delay-[180ms] translate-x-0',
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#141310] border border-[#2e2b24]">
+                <Zap size={11} className="text-[#625d4e]" />
+                <span className="text-[11px] text-[#625d4e] font-medium whitespace-nowrap">
+                  {userPlan === 'free' ? 'Plan Gratis' : userPlan === 'mini' ? 'Plan Mini' : 'Plan Pro'}
+                </span>
+              </div>
+              {userPlan === 'free' && (
+                <Link
+                  href="/upgrade"
+                  className="flex items-center gap-0.5 text-[11px] text-[#d97757] hover:text-[#e8a87c] transition-colors whitespace-nowrap"
+                >
+                  Upgrade <ArrowUpRight size={11} />
+                </Link>
+              )}
+            </div>
             <LimitBadge used={limitUsed} limit={limitMax} isLoggedIn={isLoggedIn} />
             <AuthButton user={user} logoutLabel={t.logout} />
           </div>
-        )}
 
-        {collapsed && (
-          <div className="px-2 py-4 border-t border-[#1e1e2a] flex-shrink-0 flex flex-col items-center gap-2">
+          {/* Collapsed footer */}
+          <div
+            className={cn(
+              'px-2 py-3 flex flex-col items-center gap-2 transition-[opacity] duration-150',
+              collapsed
+                ? 'opacity-100 pointer-events-auto delay-[180ms]'
+                : 'opacity-0 pointer-events-none delay-0 absolute bottom-0 left-0 right-0',
+            )}
+          >
             <LimitBadge used={limitUsed} limit={limitMax} isLoggedIn={isLoggedIn} compact />
             <AuthButton user={user} compact />
           </div>
-        )}
+        </div>
       </aside>
     </>
   )
