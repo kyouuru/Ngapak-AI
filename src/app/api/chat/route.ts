@@ -141,16 +141,28 @@ async function callProvider(
     headers['X-Title'] = 'Ngapak AI'
   }
 
-  return fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      model: modelId,
-      stream: true,
-      max_tokens: isNvidia ? 4096 : 8096,
-      messages: [{ role: 'system', content: systemPrompt }, ...body],
-    }),
-  })
+  // AgentRouter timeout: 15s to get first byte
+  const controller = provider === 'agentrouter' ? new AbortController() : undefined
+  const timeout = controller
+    ? setTimeout(() => controller.abort(), 15_000)
+    : undefined
+
+  try {
+    const res = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers,
+      signal: controller?.signal,
+      body: JSON.stringify({
+        model: modelId,
+        stream: true,
+        max_tokens: isNvidia ? 4096 : 8096,
+        messages: [{ role: 'system', content: systemPrompt }, ...body],
+      }),
+    })
+    return res
+  } finally {
+    if (timeout) clearTimeout(timeout)
+  }
 }
 
 /* ─── Fallback orchestration ─────────────────────────────── */
@@ -222,7 +234,7 @@ async function callWithFallback(
 }
 
 /* ─── SSE stream forwarder ───────────────────────────────── */
-function forwardSSEStream(upstream: Response): ReadableStream<Uint8Array> {
+function forwardSSEStream(upstream: Response, provider: Provider): ReadableStream<Uint8Array> {
   const encoder = new TextEncoder()
   return new ReadableStream({
     async start(controller) {
@@ -230,6 +242,7 @@ function forwardSSEStream(upstream: Response): ReadableStream<Uint8Array> {
       const decoder = new TextDecoder()
       if (!reader) { controller.close(); return }
       let buffer = ''
+      let chunkCount = 0
       try {
         while (true) {
           const { done, value } = await reader.read()
@@ -239,31 +252,51 @@ function forwardSSEStream(upstream: Response): ReadableStream<Uint8Array> {
           buffer = lines.pop() ?? ''
           for (const line of lines) {
             const trimmed = line.trim()
-            if (!trimmed || !trimmed.startsWith('data: ')) continue
-            const data = trimmed.slice(6).trim()
-            if (data === '[DONE]') { controller.enqueue(encoder.encode('data: [DONE]\n\n')); return }
+            if (!trimmed) continue
+            // Handle both "data: ..." and raw JSON (some providers skip the data: prefix)
+            let dataStr = trimmed
+            if (trimmed.startsWith('data: ')) {
+              dataStr = trimmed.slice(6).trim()
+            } else if (!trimmed.startsWith('{')) {
+              continue
+            }
+            if (dataStr === '[DONE]') {
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+              return
+            }
             try {
-              const parsed = JSON.parse(data)
-              const text = parsed?.choices?.[0]?.delta?.content
+              const parsed = JSON.parse(dataStr)
+              // OpenAI-style delta
+              let text = parsed?.choices?.[0]?.delta?.content
+              // Anthropic-style (in case AgentRouter proxies Anthropic format)
+              if (text === undefined) text = parsed?.delta?.text
+              if (text === undefined) text = parsed?.content?.[0]?.text
+              if (typeof text === 'string' && text.length > 0) {
+                chunkCount++
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
+              }
+            } catch {
+              // non-JSON line, skip
+            }
+          }
+        }
+        // flush remaining buffer
+        if (buffer.trim()) {
+          let dataStr = buffer.trim()
+          if (dataStr.startsWith('data: ')) dataStr = dataStr.slice(6).trim()
+          if (dataStr && dataStr !== '[DONE]') {
+            try {
+              const parsed = JSON.parse(dataStr)
+              const text = parsed?.choices?.[0]?.delta?.content ?? parsed?.delta?.text
               if (typeof text === 'string' && text.length > 0)
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
             } catch {}
           }
         }
-        // flush remaining
-        if (buffer.trim().startsWith('data: ')) {
-          const data = buffer.trim().slice(6).trim()
-          if (data && data !== '[DONE]') {
-            try {
-              const parsed = JSON.parse(data)
-              const text = parsed?.choices?.[0]?.delta?.content
-              if (typeof text === 'string' && text.length > 0)
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
-            } catch {}
-          }
-        }
+        console.log(`[chat] ${provider} stream done, chunks: ${chunkCount}`)
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
       } catch (err) {
+        console.error(`[chat] stream error (${provider}):`, err)
         controller.error(err)
       } finally {
         controller.close()
@@ -361,7 +394,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    return new Response(forwardSSEStream(response), {
+    return new Response(forwardSSEStream(response, usedProvider), {
       headers: {
         'Content-Type':            'text/event-stream',
         'Cache-Control':           'no-cache',
