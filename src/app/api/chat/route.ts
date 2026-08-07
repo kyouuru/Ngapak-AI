@@ -23,48 +23,48 @@ interface ModelConfig {
 }
 
 export const MODEL_MAP: Record<string, ModelConfig> = {
-  // ── Default free model — NVIDIA DeepSeek V4 Pro primary, others fallback ──
+  // ── Default model — AgentRouter first (fastest routing), NVIDIA fallback, OpenRouter last ──
   'deepseek/deepseek-chat-v3-0324:free': {
-    nvidia:      'deepseek-ai/deepseek-v4-pro',      // V4 Pro on NVIDIA NIM (1.6T MoE)
-    agentrouter: 'deepseek-v3',
+    agentrouter: 'claude-opus-4-8',
+    nvidia:      'deepseek-ai/deepseek-v4-pro',
     openrouter:  'deepseek/deepseek-chat-v3-0324:free',
-    primary:     'nvidia',
+    primary:     'agentrouter',
   },
   'google/gemini-2.0-flash-001': {
     openrouter:  'google/gemini-2.0-flash-001',
+    agentrouter: 'claude-opus-4-8',
     nvidia:      'deepseek-ai/deepseek-v4-pro',
-    agentrouter: 'deepseek-v3',
     primary:     'openrouter',
   },
   'meta-llama/llama-3.3-70b-instruct': {
-    openrouter:  'meta-llama/llama-3.3-70b-instruct',
+    agentrouter: 'claude-opus-4-8',
     nvidia:      'meta/llama-3.3-70b-instruct',
-    agentrouter: 'deepseek-v3',
-    primary:     'openrouter',
+    openrouter:  'meta-llama/llama-3.3-70b-instruct',
+    primary:     'nvidia',
   },
   // ── NVIDIA DeepSeek V4 Pro (direct) ──
   'nvidia/deepseek-v4-pro': {
     nvidia:      'deepseek-ai/deepseek-v4-pro',
-    agentrouter: 'deepseek-v3',
+    agentrouter: 'claude-opus-4-8',
     openrouter:  'deepseek/deepseek-chat-v3-0324:free',
     primary:     'nvidia',
   },
   // ── NVIDIA Nemotron ──
   'nvidia/llama-3.1-nemotron-70b-instruct': {
     nvidia:      'nvidia/llama-3.1-nemotron-70b-instruct',
+    agentrouter: 'claude-opus-4-8',
     openrouter:  'meta-llama/llama-3.1-70b-instruct',
-    agentrouter: 'deepseek-v3',
     primary:     'nvidia',
   },
-  // ── AgentRouter-primary paid models (Claude etc.) ──
+  // ── Claude — AgentRouter first ──
   'anthropic/claude-3.5-haiku': {
-    agentrouter: 'claude-haiku-4-5-20251001',
+    agentrouter: 'claude-opus-4-8',
     openrouter:  'anthropic/claude-3.5-haiku',
     nvidia:      'deepseek-ai/deepseek-v4-pro',
     primary:     'agentrouter',
   },
   'anthropic/claude-3.5-sonnet': {
-    agentrouter: 'claude-opus-4-6',
+    agentrouter: 'claude-opus-4-8',
     openrouter:  'anthropic/claude-3.5-sonnet',
     nvidia:      'deepseek-ai/deepseek-v4-pro',
     primary:     'agentrouter',

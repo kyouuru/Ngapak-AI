@@ -15,12 +15,12 @@ interface ModelSelectorProps {
 const MODELS = [
   {
     id: 'deepseek/deepseek-chat-v3-0324:free',
-    name: 'DeepSeek V4 Pro',
-    desc: 'NVIDIA NIM · 1.6T MoE, kuat & cepet',
+    name: 'DeepSeek V3',
+    desc: 'AgentRouter · Cepet & pinter',
     icon: Cpu,
     badge: 'Free ⭐',
     badgeColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
-    provider: 'nvidia',
+    provider: 'agentrouter',
   },
   {
     id: 'google/gemini-2.0-flash-001',

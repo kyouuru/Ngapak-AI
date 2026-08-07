@@ -355,7 +355,17 @@ export function ChatPage() {
 
   const deleteSession = useCallback((id: string) => {
     setSessions((prev) => prev.filter((s) => s.id !== id))
-    setActiveSessionId((prev) => prev === id ? null : prev)
+    setActiveSessionId((prev) => {
+      if (prev === id) {
+        // If we're deleting the active session while AI is loading, abort it
+        abortRef.current?.abort()
+        setIsLoading(false)
+        setStreamingContent('')
+        abortRef.current = null
+        return null
+      }
+      return prev
+    })
   }, [])
 
   const sendMessage = useCallback(async (content: string, attachment?: ProcessedAttachment) => {
@@ -463,7 +473,8 @@ export function ChatPage() {
   }, [activeSessionId, isLoading, isLimitReached, limitMax, model, sessions, skillId, langId, webSearch])
 
   const messages = activeSession?.messages ?? []
-  const isEmpty = messages.length === 0 && !isLoading
+  // isEmpty: no active session OR no messages AND not loading for a real session
+  const isEmpty = !activeSessionId || (messages.length === 0 && !isLoading)
 
   // Keep greeting rendered during exit animation (400ms)
   const [showGreeting, setShowGreeting] = useState(true)
