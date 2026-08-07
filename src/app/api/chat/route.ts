@@ -26,44 +26,44 @@ export const MODEL_MAP: Record<string, ModelConfig> = {
   // ── DEFAULT: AgentRouter claude-opus-4-8 (prioritas utama) ──
   'agentrouter/claude-opus-4-8': {
     agentrouter: 'claude-opus-4-8',
-    openrouter:  'anthropic/claude-3.5-sonnet',
-    nvidia:      'deepseek-ai/deepseek-v4-pro',
+    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
+    nvidia:      'meta/llama-3.3-70b-instruct',
     primary:     'agentrouter',
   },
   // ── AgentRouter claude-opus-5 ──
   'agentrouter/claude-opus-5': {
     agentrouter: 'claude-opus-5',
-    openrouter:  'anthropic/claude-3.5-sonnet',
-    nvidia:      'deepseek-ai/deepseek-v4-pro',
+    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
+    nvidia:      'meta/llama-3.3-70b-instruct',
     primary:     'agentrouter',
   },
   // ── AgentRouter gpt-5.6-sol ──
   'agentrouter/gpt-5.6-sol': {
     agentrouter: 'gpt-5.6-sol',
-    openrouter:  'openai/gpt-4o',
-    nvidia:      'deepseek-ai/deepseek-v4-pro',
+    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
+    nvidia:      'meta/llama-3.3-70b-instruct',
     primary:     'agentrouter',
   },
   // ── Gemini Flash (OpenRouter) ──
   'google/gemini-2.0-flash-001': {
     openrouter:  'google/gemini-2.0-flash-001',
     agentrouter: 'claude-opus-4-8',
-    nvidia:      'deepseek-ai/deepseek-v4-pro',
+    nvidia:      'meta/llama-3.3-70b-instruct',
     primary:     'openrouter',
   },
-  // ── Llama (NVIDIA primary, OR fallback) ──
+  // ── Llama (NVIDIA primary) ──
   'meta-llama/llama-3.3-70b-instruct': {
     nvidia:      'meta/llama-3.3-70b-instruct',
     openrouter:  'meta-llama/llama-3.3-70b-instruct',
     agentrouter: 'claude-opus-4-8',
     primary:     'nvidia',
   },
-  // ── DeepSeek V4 (NVIDIA primary) ──
+  // ── DeepSeek (OpenRouter — NVIDIA model EOL) ──
   'nvidia/deepseek-v4-pro': {
-    nvidia:      'deepseek-ai/deepseek-v4-pro',
-    agentrouter: 'claude-opus-4-8',
     openrouter:  'deepseek/deepseek-chat-v3-0324:free',
-    primary:     'nvidia',
+    agentrouter: 'claude-opus-4-8',
+    nvidia:      'meta/llama-3.3-70b-instruct',
+    primary:     'openrouter',
   },
 }
 
@@ -126,29 +126,54 @@ async function callProvider(
     ? OPENROUTER_BASE
     : NVIDIA_BASE
 
-  // NVIDIA and AgentRouter don't support image content blocks
-  const body = isNvidia || provider === 'agentrouter'
-    ? flattenMessages(messages)
-    : messages.map((m) => ({ role: m.role, content: m.content }))
+  const flatMsgs = flattenMessages(messages)
 
   const headers: Record<string, string> = {
     Authorization: `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
   }
-  // OpenRouter wants referer for rate-limit tiers
   if (provider === 'openrouter') {
     headers['HTTP-Referer'] = 'https://ngapak-ai.vercel.app'
     headers['X-Title'] = 'Ngapak AI'
   }
 
-  // AgentRouter timeout: 15s to get first byte
-  const controller = provider === 'agentrouter' ? new AbortController() : undefined
-  const timeout = controller
-    ? setTimeout(() => controller.abort(), 15_000)
-    : undefined
+  // AgentRouter: Anthropic Messages API format (/v1/messages)
+  if (provider === 'agentrouter') {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 20_000)
+    try {
+      return await fetch(`${AGENTROUTER_BASE}/messages`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'anthropic-version': '2023-06-01',
+          'x-api-key': apiKey,
+          // Remove Authorization for Anthropic format — some relays use x-api-key only
+        },
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: modelId,
+          max_tokens: 8096,
+          stream: true,
+          system: systemPrompt,
+          messages: flatMsgs.filter((m) => m.role !== 'system'),
+        }),
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
+
+  // OpenAI-compatible format (OpenRouter & NVIDIA)
+  const body = isNvidia
+    ? flatMsgs
+    : messages.map((m) => ({ role: m.role, content: m.content }))
+
+  const controller = provider === 'nvidia' ? new AbortController() : undefined
+  const timeout = controller ? setTimeout(() => controller.abort(), 15_000) : undefined
 
   try {
-    const res = await fetch(`${baseUrl}/chat/completions`, {
+    return await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers,
       signal: controller?.signal,
@@ -159,7 +184,6 @@ async function callProvider(
         messages: [{ role: 'system', content: systemPrompt }, ...body],
       }),
     })
-    return res
   } finally {
     if (timeout) clearTimeout(timeout)
   }
@@ -253,7 +277,6 @@ function forwardSSEStream(upstream: Response, provider: Provider): ReadableStrea
           for (const line of lines) {
             const trimmed = line.trim()
             if (!trimmed) continue
-            // Handle both "data: ..." and raw JSON (some providers skip the data: prefix)
             let dataStr = trimmed
             if (trimmed.startsWith('data: ')) {
               dataStr = trimmed.slice(6).trim()
@@ -266,11 +289,23 @@ function forwardSSEStream(upstream: Response, provider: Provider): ReadableStrea
             }
             try {
               const parsed = JSON.parse(dataStr)
-              // OpenAI-style delta
-              let text = parsed?.choices?.[0]?.delta?.content
-              // Anthropic-style (in case AgentRouter proxies Anthropic format)
-              if (text === undefined) text = parsed?.delta?.text
-              if (text === undefined) text = parsed?.content?.[0]?.text
+              let text: string | undefined
+
+              if (provider === 'agentrouter') {
+                // Anthropic SSE: content_block_delta event
+                if (parsed?.type === 'content_block_delta') {
+                  text = parsed?.delta?.text
+                } else if (parsed?.type === 'message_delta') {
+                  // ignore — just metadata
+                } else if (parsed?.type === 'message_stop') {
+                  controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+                  return
+                }
+              } else {
+                // OpenAI-style delta
+                text = parsed?.choices?.[0]?.delta?.content
+              }
+
               if (typeof text === 'string' && text.length > 0) {
                 chunkCount++
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
@@ -287,7 +322,9 @@ function forwardSSEStream(upstream: Response, provider: Provider): ReadableStrea
           if (dataStr && dataStr !== '[DONE]') {
             try {
               const parsed = JSON.parse(dataStr)
-              const text = parsed?.choices?.[0]?.delta?.content ?? parsed?.delta?.text
+              const text = provider === 'agentrouter'
+                ? parsed?.delta?.text
+                : parsed?.choices?.[0]?.delta?.content
               if (typeof text === 'string' && text.length > 0)
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
             } catch {}
