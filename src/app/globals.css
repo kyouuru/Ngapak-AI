@@ -451,15 +451,15 @@
 
 @keyframes waveDrift1 {
   0%, 100% { transform: translateX(0) scaleY(1); }
-  50%       { transform: translateX(-18px) scaleY(1.08); }
+  50%       { transform: translateX(-32px) scaleY(1.12); }
 }
 @keyframes waveDrift2 {
   0%, 100% { transform: translateX(0) scaleY(1); }
-  50%       { transform: translateX(14px) scaleY(0.94); }
+  50%       { transform: translateX(28px) scaleY(0.90); }
 }
 @keyframes waveDrift3 {
   0%, 100% { transform: translateX(0); }
-  50%       { transform: translateX(-8px); }
+  50%       { transform: translateX(-16px); }
 }
 
 @keyframes blobFloat0 {

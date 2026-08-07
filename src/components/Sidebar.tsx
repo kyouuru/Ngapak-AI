@@ -48,22 +48,17 @@ function groupSessions(sessions: ChatSession[]) {
   return { today, yesterday, week, older }
 }
 
-/** Logo: fills its container completely, rounded, with warm glow */
+/** Logo: bare image, no container */
 function Logo({ size }: { size: number }) {
   return (
-    <div
-      style={{ width: size, height: size, borderRadius: 10, overflow: 'hidden', flexShrink: 0 }}
-    >
-      <Image
-        src="/logo.png"
-        alt="Ngapak AI"
-        width={size}
-        height={size}
-        className="object-cover"
-        style={{ width: size, height: size, filter: 'drop-shadow(0 0 8px rgba(217,119,87,0.6))' }}
-        priority
-      />
-    </div>
+    <Image
+      src="/logo.png"
+      alt="Ngapak AI"
+      width={size}
+      height={size}
+      style={{ width: size, height: size, flexShrink: 0 }}
+      priority
+    />
   )
 }
 
@@ -151,7 +146,7 @@ export function Sidebar({
             collapsed ? 'w-0 opacity-0 pointer-events-none' : 'flex-1 opacity-100',
           )}>
             <div className="flex-shrink-0 flex items-center justify-center">
-              <Logo size={40} />
+              <Logo size={48} />
             </div>
             <div className="min-w-0">
               <h1 className="text-sm font-semibold text-[#241711] leading-none whitespace-nowrap">Ngapak AI</h1>

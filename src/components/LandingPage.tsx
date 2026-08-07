@@ -268,8 +268,6 @@ function BatikMarqueeBackground() {
 }
 
 // ── Section Wave Divider ─────────────────────────────────────────
-// from: warna section sebelumnya, to: warna section sesudahnya
-// variant: bentuk wave yang berbeda tiap perpindahan
 function SectionDivider({
   from = '#f4e6ca',
   to = '#ead6b5',
@@ -281,52 +279,45 @@ function SectionDivider({
   variant?: 0 | 1 | 2 | 3
   flip?: boolean
 }) {
-  const paths = [
-    // 0 — lembut mengalir
-    {
-      a: 'M0,32 C320,72 720,4 1440,40 L1440,80 L0,80 Z',
-      b: 'M0,52 C400,20 880,68 1440,48 L1440,80 L0,80 Z',
-      c: 'M0,66 C480,50 960,78 1440,62 L1440,80 L0,80 Z',
+  // 2 layer saja — back (lebih transparan, lebih dalam) & front (solid, lebih tinggi)
+  const paths: Record<0|1|2|3, { back: string; front: string }> = {
+    // 0 — mengalir lebar
+    0: {
+      back:  'M0,18 C360,68 900,0 1440,30 L1440,80 L0,80 Z',
+      front: 'M0,42 C280,10 800,62 1440,28 L1440,80 L0,80 Z',
     },
-    // 1 — bergelombang banyak
-    {
-      a: 'M0,38 C180,72 360,14 540,50 C720,80 900,16 1080,52 C1260,76 1380,32 1440,44 L1440,80 L0,80 Z',
-      b: 'M0,54 C240,28 480,70 720,48 C960,26 1200,66 1440,52 L1440,80 L0,80 Z',
-      c: 'M0,68 C360,54 720,76 1080,64 C1260,58 1380,70 1440,68 L1440,80 L0,80 Z',
+    // 1 — bergelombang 3 puncak
+    1: {
+      back:  'M0,22 C180,70 360,8 540,48 C720,80 960,10 1200,44 C1320,62 1400,32 1440,36 L1440,80 L0,80 Z',
+      front: 'M0,46 C240,16 500,68 720,38 C940,12 1180,60 1440,40 L1440,80 L0,80 Z',
     },
-    // 2 — asimetris organik
-    {
-      a: 'M0,20 C600,80 900,8 1440,36 L1440,80 L0,80 Z',
-      b: 'M0,48 C200,16 700,72 1440,44 L1440,80 L0,80 Z',
-      c: 'M0,64 C400,48 900,76 1440,60 L1440,80 L0,80 Z',
+    // 2 — asimetris tajam
+    2: {
+      back:  'M0,14 C500,80 900,4 1440,32 L1440,80 L0,80 Z',
+      front: 'M0,40 C200,8 700,74 1440,36 L1440,80 L0,80 Z',
     },
-    // 3 — halus shallow
-    {
-      a: 'M0,58 C360,40 720,76 1080,56 C1260,46 1380,62 1440,60 L1440,80 L0,80 Z',
-      b: 'M0,66 C480,52 960,74 1440,64 L1440,80 L0,80 Z',
-      c: 'M0,72 C480,62 960,78 1440,70 L1440,80 L0,80 Z',
+    // 3 — dangkal rata
+    3: {
+      back:  'M0,36 C360,72 720,20 1080,52 C1260,66 1380,38 1440,44 L1440,80 L0,80 Z',
+      front: 'M0,56 C480,28 960,72 1440,50 L1440,80 L0,80 Z',
     },
-  ]
+  }
   const p = paths[variant]
 
   return (
     <div
       className="pointer-events-none relative -my-px overflow-hidden leading-[0]"
-      style={{
-        background: from,
-        transform: flip ? 'scaleY(-1)' : undefined,
-      }}
+      style={{ background: from, transform: flip ? 'scaleY(-1)' : undefined }}
       aria-hidden="true"
     >
       <svg
         viewBox="0 0 1440 80"
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="none"
-        className="block h-16 w-full sm:h-20"
+        className="block h-20 w-full sm:h-28"
       >
-        <path d={p.a} fill={to} fillOpacity="0.45" style={{ animation: 'waveDrift1 7s ease-in-out infinite', transformOrigin: 'center bottom' }} />
-        <path d={p.b} fill={to} fillOpacity="0.72" style={{ animation: 'waveDrift2 5s ease-in-out infinite', transformOrigin: 'center bottom' }} />
-        <path d={p.c} fill={to}                    style={{ animation: 'waveDrift3 9s ease-in-out infinite', transformOrigin: 'center bottom' }} />
+        <path d={p.back}  fill={to} fillOpacity="0.55" style={{ animation: 'waveDrift1 4s ease-in-out infinite', transformOrigin: 'center bottom' }} />
+        <path d={p.front} fill={to} fillOpacity="1"    style={{ animation: 'waveDrift2 3s ease-in-out infinite', transformOrigin: 'center bottom' }} />
       </svg>
     </div>
   )
@@ -624,7 +615,7 @@ function MiniChat() {
     <div className="ink-outline rotate-[-2.5deg] rounded-[2rem_1.1rem_2.4rem_1.4rem] bg-[#fff4dc] p-5 text-[#241711]">
       <div className="flex items-center justify-between border-b border-[#4a2d1c]/15 pb-3">
         <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Ngapak AI chat icon" width={28} height={28} className="rounded-lg" />
+          <Image src="/logo.png" alt="Ngapak AI chat icon" width={36} height={36} style={{ width: 36, height: 36 }} />
           <div>
             <p className="text-sm font-semibold text-[#241711]">Ngapak AI</p>
             <p className="text-xs text-[#8a6b52]">Powered by Claude</p>
@@ -774,8 +765,8 @@ export function LandingPage() {
 
       <header className={cn('fixed inset-x-0 top-0 z-40 transition duration-300', scrolled ? 'border-b border-[#4a2d1c]/15 bg-[#f4e6ca]/86 backdrop-blur-xl' : 'bg-transparent')}>
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-3 rounded-full focus:outline-none focus:ring-2 focus:ring-[#b5502e]/40">
-            <Image src="/logo.png" alt="Ngapak AI logo" width={34} height={34} className="rounded-full ring-1 ring-[#4a2d1c]/15" priority />
+          <Link href="/" className="flex items-center gap-2.5 focus:outline-none focus:ring-2 focus:ring-[#b5502e]/40 rounded-xl">
+            <Image src="/logo.png" alt="Ngapak AI logo" width={44} height={44} style={{ width: 44, height: 44 }} priority />
             <span className="font-display text-base font-semibold tracking-wide">Ngapak AI</span>
           </Link>
 
@@ -1090,7 +1081,7 @@ export function LandingPage() {
       <footer className="relative z-10 border-t border-[#4a2d1c]/10 bg-[#d9c9a8] px-4 py-10 sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/logo.png" alt="Ngapak AI logo" width={30} height={30} className="rounded-full ring-1 ring-[#4a2d1c]/15" />
+            <Image src="/logo.png" alt="Ngapak AI logo" width={40} height={40} style={{ width: 40, height: 40 }} />
             <div>
               <p className="font-semibold text-[#241711]">Ngapak AI</p>
               <p className="text-xs text-[#8a6b52]">Asisten AI Indonesia dengan crypto checkout.</p>
