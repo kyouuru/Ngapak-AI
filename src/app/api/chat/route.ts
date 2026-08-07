@@ -23,46 +23,40 @@ interface ModelConfig {
 }
 
 export const MODEL_MAP: Record<string, ModelConfig> = {
-  // ── DEFAULT: AgentRouter claude-opus-4-8 (prioritas utama) ──
+  // AgentRouter models — primary, no agentrouter fallback
   'agentrouter/claude-opus-4-8': {
     agentrouter: 'claude-opus-4-8',
-    nvidia:      'mistralai/mistral-small-4-119b-2603',
-    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
+    openrouter:  'nvidia/nemotron-3-super-120b-a12b:free',
+    nvidia:      'meta/llama-3.3-70b-instruct',
     primary:     'agentrouter',
   },
-  // ── AgentRouter claude-opus-5 ──
   'agentrouter/claude-opus-5': {
     agentrouter: 'claude-opus-5',
-    nvidia:      'mistralai/mistral-small-4-119b-2603',
-    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
+    openrouter:  'nvidia/nemotron-3-super-120b-a12b:free',
+    nvidia:      'meta/llama-3.3-70b-instruct',
     primary:     'agentrouter',
   },
-  // ── AgentRouter gpt-5.6-sol ──
   'agentrouter/gpt-5.6-sol': {
     agentrouter: 'gpt-5.6-sol',
-    nvidia:      'mistralai/mistral-small-4-119b-2603',
-    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
+    openrouter:  'openai/gpt-oss-20b:free',
+    nvidia:      'meta/llama-3.3-70b-instruct',
     primary:     'agentrouter',
   },
-  // ── Gemini Flash (OpenRouter) ──
+  // OpenRouter primary models
   'google/gemini-2.0-flash-001': {
-    openrouter:  'google/gemini-2.0-flash-001',
-    agentrouter: 'claude-opus-4-8',
-    nvidia:      'mistralai/mistral-small-4-119b-2603',
+    openrouter:  'google/gemma-4-26b-a4b-it:free',
+    nvidia:      'meta/llama-3.3-70b-instruct',
     primary:     'openrouter',
   },
-  // ── Llama via NVIDIA ──
+  // NVIDIA primary models
   'meta-llama/llama-3.3-70b-instruct': {
-    nvidia:      'meta/llama-3.1-70b-instruct',
-    agentrouter: 'claude-opus-4-8',
-    openrouter:  'meta-llama/llama-3.1-70b-instruct:free',
+    nvidia:      'meta/llama-3.3-70b-instruct',
+    openrouter:  'nvidia/nemotron-3-super-120b-a12b:free',
     primary:     'nvidia',
   },
-  // ── Mistral via NVIDIA ──
   'nvidia/deepseek-v4-pro': {
-    nvidia:      'mistralai/mistral-small-4-119b-2603',
-    agentrouter: 'claude-opus-4-8',
-    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
+    nvidia:      'meta/llama-3.3-70b-instruct',
+    openrouter:  'nvidia/nemotron-3-super-120b-a12b:free',
     primary:     'nvidia',
   },
 }
@@ -135,6 +129,36 @@ async function callProvider(
   if (provider === 'openrouter') {
     headers['HTTP-Referer'] = 'https://ngapak-ai.vercel.app'
     headers['X-Title'] = 'Ngapak AI'
+  }
+  // AgentRouter: Claude Code wire image headers required by WAF
+  if (provider === 'agentrouter') {
+    headers['anthropic-version'] = '2023-06-01'
+    headers['anthropic-beta'] = 'max-tokens-3-5'
+    headers['x-api-key'] = apiKey
+    headers['user-agent'] = 'claude-code/1.0'
+  }
+
+  // AgentRouter uses Anthropic Messages API format, not OpenAI
+  if (provider === 'agentrouter') {
+    const flatMsgsAR = flattenMessages(messages)
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 25_000)
+    try {
+      return await fetch(`${AGENTROUTER_BASE}/messages`, {
+        method: 'POST',
+        headers,
+        signal: controller.signal,
+        body: JSON.stringify({
+          model: modelId,
+          max_tokens: 8096,
+          stream: true,
+          system: systemPrompt,
+          messages: flatMsgsAR,
+        }),
+      })
+    } finally {
+      clearTimeout(timer)
+    }
   }
 
   // All providers use OpenAI-compatible /chat/completions format
@@ -260,8 +284,17 @@ function forwardSSEStream(upstream: Response, provider: Provider): ReadableStrea
             }
             try {
               const parsed = JSON.parse(dataStr)
-              // OpenAI-style delta (all providers now use /chat/completions)
-              const text = parsed?.choices?.[0]?.delta?.content
+              let text: string | undefined
+              // Anthropic SSE (AgentRouter): content_block_delta
+              if (parsed?.type === 'content_block_delta') {
+                text = parsed?.delta?.text
+              } else if (parsed?.type === 'message_stop') {
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+                return
+              } else {
+                // OpenAI SSE (OpenRouter, NVIDIA)
+                text = parsed?.choices?.[0]?.delta?.content
+              }
               if (typeof text === 'string' && text.length > 0) {
                 chunkCount++
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
