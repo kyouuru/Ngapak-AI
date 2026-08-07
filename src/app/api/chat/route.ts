@@ -129,7 +129,7 @@ async function callProvider(
   const flatMsgs = flattenMessages(messages)
 
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${apiKey}`,
+    'Authorization': `Bearer ${apiKey}`,
     'Content-Type': 'application/json',
   }
   if (provider === 'openrouter') {
@@ -137,46 +137,17 @@ async function callProvider(
     headers['X-Title'] = 'Ngapak AI'
   }
 
-  // AgentRouter: Anthropic Messages API format (/v1/messages)
-  if (provider === 'agentrouter') {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 20_000)
-    try {
-      return await fetch(`${AGENTROUTER_BASE}/messages`, {
-        method: 'POST',
-        headers: {
-          ...headers,
-          'anthropic-version': '2023-06-01',
-          'x-api-key': apiKey,
-          // Remove Authorization for Anthropic format — some relays use x-api-key only
-        },
-        signal: controller.signal,
-        body: JSON.stringify({
-          model: modelId,
-          max_tokens: 8096,
-          stream: true,
-          system: systemPrompt,
-          messages: flatMsgs.filter((m) => m.role !== 'system'),
-        }),
-      })
-    } finally {
-      clearTimeout(timeout)
-    }
-  }
-
-  // OpenAI-compatible format (OpenRouter & NVIDIA)
-  const body = isNvidia
-    ? flatMsgs
-    : messages.map((m) => ({ role: m.role, content: m.content }))
-
-  const controller = provider === 'nvidia' ? new AbortController() : undefined
-  const timeout = controller ? setTimeout(() => controller.abort(), 15_000) : undefined
+  // All providers use OpenAI-compatible /chat/completions format
+  const body = isNvidia ? flatMsgs : flatMsgs
+  const timeoutMs = provider === 'nvidia' ? 30_000 : 25_000
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     return await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers,
-      signal: controller?.signal,
+      signal: controller.signal,
       body: JSON.stringify({
         model: modelId,
         stream: true,
@@ -185,7 +156,7 @@ async function callProvider(
       }),
     })
   } finally {
-    if (timeout) clearTimeout(timeout)
+    clearTimeout(timer)
   }
 }
 
@@ -289,29 +260,13 @@ function forwardSSEStream(upstream: Response, provider: Provider): ReadableStrea
             }
             try {
               const parsed = JSON.parse(dataStr)
-              let text: string | undefined
-
-              if (provider === 'agentrouter') {
-                // Anthropic SSE: content_block_delta event
-                if (parsed?.type === 'content_block_delta') {
-                  text = parsed?.delta?.text
-                } else if (parsed?.type === 'message_delta') {
-                  // ignore — just metadata
-                } else if (parsed?.type === 'message_stop') {
-                  controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-                  return
-                }
-              } else {
-                // OpenAI-style delta
-                text = parsed?.choices?.[0]?.delta?.content
-              }
-
+              // OpenAI-style delta (all providers now use /chat/completions)
+              const text = parsed?.choices?.[0]?.delta?.content
               if (typeof text === 'string' && text.length > 0) {
                 chunkCount++
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
               }
             } catch {
-              // non-JSON line, skip
             }
           }
         }
