@@ -114,12 +114,12 @@ export function ChatMessage({ message, isStreaming, langId = 'id', firstMessage 
           'relative rounded-2xl px-4 py-3',
           isUser
             ? 'bg-[#d97757] text-white rounded-tr-sm shadow-glow-sm'
-            : 'bg-[#181613] border border-[#2e2b24] text-[#f2ede4] rounded-tl-sm',
+            : 'bg-[#fff4dc] border border-[#4a2d1c]/18 text-[#241711] rounded-tl-sm shadow-[4px_4px_0_rgba(36,23,17,0.06)]',
         )}>
           {isUser ? (
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
           ) : (
-            <div className="prose-dark">
+            <div className="prose-chat">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {displayedContent}
               </ReactMarkdown>

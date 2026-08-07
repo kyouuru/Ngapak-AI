@@ -59,8 +59,8 @@ function Logo({ size }: { size: number }) {
         alt="Ngapak AI"
         width={size}
         height={size}
-        className="object-cover w-full h-full"
-        style={{ filter: 'drop-shadow(0 0 8px rgba(217,119,87,0.6))' }}
+        className="object-cover"
+        style={{ width: size, height: size, filter: 'drop-shadow(0 0 8px rgba(217,119,87,0.6))' }}
         priority
       />
     </div>
@@ -131,7 +131,7 @@ export function Sidebar({
       <aside
         onClick={collapsed ? onToggleCollapse : undefined}
         className={cn(
-          'flex flex-col bg-[#0a0908] border-r border-[#221f1a] overflow-hidden',
+          'flex flex-col bg-[#ead6b5]/88 border-r border-[#4a2d1c]/15 overflow-hidden backdrop-blur-xl',
           'transition-[width,transform] duration-300 ease-in-out flex-shrink-0',
           'md:relative md:translate-x-0 md:h-full',
           collapsed ? 'md:w-[60px]' : 'md:w-[268px]',
@@ -142,7 +142,7 @@ export function Sidebar({
       >
         {/* ── Header ── */}
         <div className={cn(
-          'flex items-center h-14 border-b border-[#221f1a] flex-shrink-0 transition-all duration-300',
+          'flex items-center h-14 border-b border-[#4a2d1c]/15 flex-shrink-0 transition-all duration-300',
           collapsed ? 'justify-center px-2' : 'justify-between px-3 gap-2',
         )}>
           {/* Logo + name (hidden when collapsed) */}
@@ -154,8 +154,8 @@ export function Sidebar({
               <Logo size={40} />
             </div>
             <div className="min-w-0">
-              <h1 className="text-sm font-semibold text-[#f2ede4] leading-none whitespace-nowrap">Ngapak AI</h1>
-              <p className="text-[10px] text-[#4a4538] mt-0.5 whitespace-nowrap">Saka tlatah Banyumas</p>
+              <h1 className="text-sm font-semibold text-[#241711] leading-none whitespace-nowrap">Ngapak AI</h1>
+              <p className="text-[10px] text-[#8a6b52] mt-0.5 whitespace-nowrap">Saka tlatah Banyumas</p>
             </div>
           </div>
 
@@ -163,7 +163,7 @@ export function Sidebar({
           <button
             onClick={(e) => { e.stopPropagation(); onToggleCollapse() }}
             className="hidden md:flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0
-              text-[#4a4538] hover:text-[#a09880] hover:bg-white/5 transition-all"
+              text-[#60412f] hover:text-[#b5502e] hover:bg-[#fff4dc]/60 transition-all"
             title={collapsed ? 'Buka sidebar' : 'Minimize sidebar'}
           >
             {collapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
@@ -173,7 +173,7 @@ export function Sidebar({
           <button
             onClick={onClose}
             className="md:hidden flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0
-              text-[#4a4538] hover:text-[#a09880] hover:bg-white/5 transition-all"
+              text-[#60412f] hover:text-[#b5502e] hover:bg-[#fff4dc]/60 transition-all"
           >
             <X size={16} />
           </button>
@@ -185,7 +185,7 @@ export function Sidebar({
             onClick={(e) => { e.stopPropagation(); onNewChat() }}
             className={cn(
               'flex items-center rounded-xl text-sm font-medium transition-all duration-150 group',
-              'bg-[#d97757]/10 hover:bg-[#d97757]/18 text-[#d97757] border border-[#d97757]/20 hover:border-[#d97757]/35',
+              'bg-[#b5502e]/10 hover:bg-[#b5502e]/18 text-[#b5502e] border border-[#b5502e]/20 hover:border-[#b5502e]/35',
               collapsed ? 'w-full justify-center p-2.5' : 'w-full gap-2.5 px-3 py-2.5',
             )}
             title={collapsed ? t.newChat : undefined}
@@ -204,11 +204,11 @@ export function Sidebar({
                 'transition-[opacity] duration-200 delay-[180ms]',
                 collapsed ? 'opacity-0' : 'opacity-100',
               )}>
-                <div className="w-9 h-9 rounded-xl bg-[#141310] flex items-center justify-center mb-3">
-                  <MessageSquare size={15} className="text-[#4a4538]" />
+                <div className="w-9 h-9 rounded-xl bg-[#fff4dc]/65 flex items-center justify-center mb-3">
+                  <MessageSquare size={15} className="text-[#8a6b52]" />
                 </div>
-                <p className="text-xs text-[#4a4538]">{t.noChats}</p>
-                <p className="text-xs text-[#35312a] mt-1">{t.noChatsDesc}</p>
+                <p className="text-xs text-[#60412f]">{t.noChats}</p>
+                <p className="text-xs text-[#8a6b52] mt-1">{t.noChatsDesc}</p>
               </div>
             )
           ) : (
@@ -235,7 +235,7 @@ export function Sidebar({
 
         {/* ── Footer ── */}
         {/* Always rendered — opacity delayed so content fades in AFTER width animation */}
-        <div className="border-t border-[#221f1a] flex-shrink-0">
+        <div className="border-t border-[#4a2d1c]/15 flex-shrink-0">
           {/* Expanded footer */}
           <div
             className={cn(
@@ -246,16 +246,16 @@ export function Sidebar({
             )}
           >
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#141310] border border-[#2e2b24]">
-                <Zap size={11} className="text-[#625d4e]" />
-                <span className="text-[11px] text-[#625d4e] font-medium whitespace-nowrap">
+              <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#fff4dc]/65 border border-[#4a2d1c]/15">
+                <Zap size={11} className="text-[#8a6b52]" />
+                <span className="text-[11px] text-[#60412f] font-medium whitespace-nowrap">
                   {userPlan === 'free' ? 'Plan Gratis' : userPlan === 'mini' ? 'Plan Mini' : 'Plan Pro'}
                 </span>
               </div>
               {userPlan === 'free' && (
                 <Link
                   href="/upgrade"
-                  className="flex items-center gap-0.5 text-[11px] text-[#d97757] hover:text-[#e8a87c] transition-colors whitespace-nowrap"
+                  className="flex items-center gap-0.5 text-[11px] text-[#b5502e] hover:text-[#8f3e24] transition-colors whitespace-nowrap"
                 >
                   Upgrade <ArrowUpRight size={11} />
                 </Link>

@@ -19,21 +19,21 @@ export function UpgradePage() {
   const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null)
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-[#f0f0f8]">
+    <div className="paper-grain min-h-screen bg-[#f4e6ca] text-[#241711]">
       {selectedPlan && (
         <PaymentModal plan={selectedPlan} user={session?.user} onClose={() => setSelectedPlan(null)} />
       )}
 
       {/* Header */}
-      <div className="border-b border-[#1e1e2a] px-6 py-4">
+      <div className="border-b border-[#4a2d1c]/15 bg-[#f4e6ca]/88 px-6 py-4 backdrop-blur-xl">
         <div className="max-w-5xl mx-auto flex items-center gap-4">
-          <Link href="/" className="flex items-center gap-2 text-[#5a5a72] hover:text-[#9090a8] transition-colors">
+          <Link href="/" className="flex items-center gap-2 text-[#60412f] hover:text-[#b5502e] transition-colors">
             <ArrowLeft size={16} />
             <span className="text-sm">Kembali</span>
           </Link>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
-              <Sparkles size={12} className="text-white" />
+            <div className="w-6 h-6 rounded-lg bg-[#b5502e] flex items-center justify-center">
+              <Sparkles size={12} className="text-[#fff4dc]" />
             </div>
             <span className="text-sm font-semibold">Ngapak AI</span>
           </div>
@@ -43,17 +43,17 @@ export function UpgradePage() {
       <div className="max-w-5xl mx-auto px-6 py-16">
         {/* Hero */}
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#7c6af7]/10 border border-[#7c6af7]/20 text-[#a78bfa] text-sm mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#fff4dc]/70 border border-[#4a2d1c]/15 text-[#b5502e] text-sm mb-6">
             <Sparkles size={14} />
             Upgrade Plan
           </div>
-          <h1 className="text-4xl font-bold mb-4">
+          <h1 className="font-display text-4xl font-bold mb-4">
             Pilih Plan yang{' '}
-            <span className="bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
+            <span className="text-[#b5502e]">
               Cocok Buat Kowe
             </span>
           </h1>
-          <p className="text-[#9090a8] text-lg max-w-xl mx-auto">
+          <p className="text-[#60412f] text-lg max-w-xl mx-auto">
             Mulai gratis, upgrade kapan saja. Semua plan bisa dibatalkan kapan saja.
           </p>
         </div>
@@ -71,10 +71,10 @@ export function UpgradePage() {
                 className={cn(
                   'relative rounded-2xl border p-6 flex flex-col transition-all duration-200',
                   isPopular
-                    ? 'border-[#7c6af7]/50 bg-[#7c6af7]/5 shadow-glow-sm'
+                    ? 'border-[#b5502e]/45 bg-[#fff4dc]/80 shadow-[8px_8px_0_rgba(36,23,17,0.08)]'
                     : isPro
-                    ? 'border-amber-500/30 bg-amber-500/5'
-                    : 'border-[#2a2a3a] bg-[#16161f]',
+                    ? 'border-[#445d3b]/30 bg-[#445d3b]/10'
+                    : 'border-[#4a2d1c]/15 bg-[#fff4dc]/65',
                 )}
               >
                 {/* Badge */}
@@ -91,24 +91,24 @@ export function UpgradePage() {
                 <div className="mb-6">
                   <div className={cn(
                     'w-10 h-10 rounded-xl flex items-center justify-center mb-4',
-                    isPopular ? 'bg-[#7c6af7]/20' : isPro ? 'bg-amber-500/20' : 'bg-[#1a1a24]',
+                    isPopular ? 'bg-[#b5502e]/12' : isPro ? 'bg-[#445d3b]/14' : 'bg-[#ead6b5]/75',
                   )}>
-                    <Icon size={18} className={isPopular ? 'text-[#7c6af7]' : isPro ? 'text-amber-400' : 'text-[#5a5a72]'} />
+                    <Icon size={18} className={isPopular ? 'text-[#b5502e]' : isPro ? 'text-[#445d3b]' : 'text-[#60412f]'} />
                   </div>
-                  <h2 className="text-xl font-bold text-[#f0f0f8] mb-1">{plan.name}</h2>
-                  <p className="text-sm text-[#5a5a72]">{plan.description}</p>
+                  <h2 className="text-xl font-bold text-[#241711] mb-1">{plan.name}</h2>
+                  <p className="text-sm text-[#8a6b52]">{plan.description}</p>
                 </div>
 
                 {/* Price */}
                 <div className="mb-6">
                   {plan.price === 0 ? (
-                    <div className="text-3xl font-bold text-[#f0f0f8]">Gratis</div>
+                    <div className="text-3xl font-bold text-[#241711]">Gratis</div>
                   ) : (
                     <div>
-                      <div className="text-3xl font-bold text-[#f0f0f8]">
+                      <div className="text-3xl font-bold text-[#241711]">
                         {formatPrice(plan.price)}
                       </div>
-                      <div className="text-sm text-[#5a5a72]">per bulan</div>
+                      <div className="text-sm text-[#8a6b52]">per bulan</div>
                     </div>
                   )}
                 </div>
@@ -119,9 +119,9 @@ export function UpgradePage() {
                     <li key={f} className="flex items-start gap-2.5">
                       <Check size={14} className={cn(
                         'flex-shrink-0 mt-0.5',
-                        isPopular ? 'text-[#7c6af7]' : isPro ? 'text-amber-400' : 'text-emerald-400',
+                        isPopular ? 'text-[#b5502e]' : isPro ? 'text-[#445d3b]' : 'text-[#445d3b]',
                       )} />
-                      <span className="text-sm text-[#9090a8]">{f}</span>
+                      <span className="text-sm text-[#60412f]">{f}</span>
                     </li>
                   ))}
                 </ul>
@@ -131,7 +131,7 @@ export function UpgradePage() {
                   <Link
                     href="/"
                     className="w-full py-3 rounded-xl text-sm font-medium text-center transition-all
-                      bg-[#1a1a24] border border-[#2a2a3a] text-[#9090a8] hover:text-[#f0f0f8] hover:border-[#3a3a4a]"
+                      bg-[#ead6b5]/65 border border-[#4a2d1c]/15 text-[#60412f] hover:text-[#241711] hover:border-[#b5502e]/30"
                   >
                     Mulai Gratis
                   </Link>
@@ -141,8 +141,8 @@ export function UpgradePage() {
                     className={cn(
                       'w-full py-3 rounded-xl text-sm font-semibold transition-all',
                       isPopular
-                        ? 'bg-[#7c6af7] hover:bg-[#6b59e6] text-white shadow-glow-sm'
-                        : 'bg-amber-500 hover:bg-amber-400 text-black',
+                        ? 'bg-[#b5502e] hover:bg-[#8f3e24] text-[#fff4dc] shadow-[5px_5px_0_rgba(36,23,17,0.12)]'
+                        : 'bg-[#445d3b] hover:bg-[#34472d] text-[#fff4dc]',
                     )}
                   >
                     Upgrade ke {plan.name}
@@ -154,17 +154,17 @@ export function UpgradePage() {
         </div>
 
         {/* Comparison table */}
-        <div className="rounded-2xl border border-[#2a2a3a] bg-[#16161f] overflow-hidden mb-16">
-          <div className="px-6 py-4 border-b border-[#2a2a3a]">
-            <h3 className="font-semibold text-[#f0f0f8]">Perbandingan Lengkap</h3>
+        <div className="rounded-2xl border border-[#4a2d1c]/15 bg-[#fff4dc]/65 overflow-hidden mb-16">
+          <div className="px-6 py-4 border-b border-[#4a2d1c]/15">
+            <h3 className="font-semibold text-[#241711]">Perbandingan Lengkap</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1e1e2a]">
-                  <th className="text-left px-6 py-3 text-[#5a5a72] font-medium">Fitur</th>
+                <tr className="border-b border-[#4a2d1c]/15">
+                  <th className="text-left px-6 py-3 text-[#8a6b52] font-medium">Fitur</th>
                   {PLANS.map((p) => (
-                    <th key={p.id} className="px-6 py-3 text-center text-[#9090a8] font-medium">{p.name}</th>
+                    <th key={p.id} className="px-6 py-3 text-center text-[#60412f] font-medium">{p.name}</th>
                   ))}
                 </tr>
               </thead>
@@ -179,10 +179,10 @@ export function UpgradePage() {
                   { label: 'Priority response', values: ['❌', '❌', '✅'] },
                   { label: 'Akses fitur beta', values: ['❌', '❌', '✅'] },
                 ].map((row) => (
-                  <tr key={row.label} className="border-b border-[#1e1e2a] last:border-0">
-                    <td className="px-6 py-3 text-[#9090a8]">{row.label}</td>
+                  <tr key={row.label} className="border-b border-[#4a2d1c]/15 last:border-0">
+                    <td className="px-6 py-3 text-[#60412f]">{row.label}</td>
                     {row.values.map((v, i) => (
-                      <td key={i} className="px-6 py-3 text-center text-[#f0f0f8]">{v}</td>
+                      <td key={i} className="px-6 py-3 text-center text-[#241711]">{v}</td>
                     ))}
                   </tr>
                 ))}
@@ -201,9 +201,9 @@ export function UpgradePage() {
               { q: 'Kenapa model Claude butuh plan berbayar?', a: 'Model Claude dari Anthropic memiliki biaya API per penggunaan. Plan berbayar membantu kami menutup biaya tersebut.' },
               { q: 'Apa bedanya analisis gambar?', a: 'Dengan plan Mini/Pro, kamu bisa upload foto/screenshot dan AI akan menganalisis isinya — cocok untuk debug UI, analisis diagram, atau membaca teks dari gambar.' },
             ].map((faq) => (
-              <div key={faq.q} className="rounded-xl border border-[#2a2a3a] bg-[#16161f] p-5">
-                <h4 className="font-medium text-[#f0f0f8] mb-2">{faq.q}</h4>
-                <p className="text-sm text-[#9090a8] leading-relaxed">{faq.a}</p>
+              <div key={faq.q} className="rounded-xl border border-[#4a2d1c]/15 bg-[#fff4dc]/65 p-5">
+                <h4 className="font-medium text-[#241711] mb-2">{faq.q}</h4>
+                <p className="text-sm text-[#60412f] leading-relaxed">{faq.a}</p>
               </div>
             ))}
           </div>

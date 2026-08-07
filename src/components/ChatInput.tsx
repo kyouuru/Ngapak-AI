@@ -20,7 +20,7 @@ interface ChatInputProps {
   inputHint?: string
 }
 
-const ACCEPTED = 'image/*,.txt,.md,.js,.ts,.jsx,.tsx,.py,.rb,.go,.rs,.java,.cpp,.c,.cs,.php,.swift,.kt,.html,.css,.scss,.json,.yaml,.yml,.toml,.xml,.sql,.sh,.bash,.env,.csv'
+const ACCEPTED = 'image/*,.txt,.md,.js,.ts,.jsx,.tsx,.py,.rb,.go,.rs,.java,.cpp,.c,.cs,.php,.swift,.kt,.html,.css,.scss,.json,.yaml,.yml,.toml,.xml,.sql,.sh,.bash,.csv'
 
 function FileIcon({ type, name }: { type: string; name: string }) {
   if (type.startsWith('image/')) return <Image size={14} className="text-violet-400" />

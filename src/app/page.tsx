@@ -1,5 +1,5 @@
-import { ChatPage } from '@/components/ChatPage'
+import { LandingPage } from '@/components/LandingPage'
 
 export default function Home() {
-  return <ChatPage />
+  return <LandingPage />
 }

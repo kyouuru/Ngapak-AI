@@ -286,7 +286,17 @@ export async function POST(req: NextRequest) {
     const limitKey = isLoggedIn
       ? `user:${session!.user!.id ?? session!.user!.email}` : `ip:${ip}`
 
-    const limitCheck = checkLimit(limitKey, isLoggedIn)
+    // ── Load user plan from DB to get correct daily limit ────────
+    let dailyLimit: number | undefined
+    if (isLoggedIn && session?.user?.email) {
+      const { getUserPlan } = await import('@/lib/db')
+      const userPlan = await getUserPlan(session.user.email)
+      const { PLANS } = await import('@/lib/plans')
+      const plan = PLANS.find((p) => p.id === userPlan.planId)
+      if (plan) dailyLimit = plan.limits.dailyMessages
+    }
+
+    const limitCheck = await checkLimit(limitKey, isLoggedIn, dailyLimit)
     if (!limitCheck.allowed) {
       return new Response(
         JSON.stringify({ error: 'rate_limit', isLoggedIn, used: limitCheck.used, limit: limitCheck.limit }),
@@ -300,6 +310,29 @@ export async function POST(req: NextRequest) {
         { status: 400, headers: { 'Content-Type': 'application/json' } })
     }
 
+    // ── Input guards ────────────────────────────────────────────
+    if (messages.length > 100) {
+      return new Response(JSON.stringify({ error: 'Terlalu banyak pesan dalam satu sesi.' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } })
+    }
+    for (const m of messages) {
+      if (typeof m.content === 'string' && m.content.length > 32_000) {
+        return new Response(JSON.stringify({ error: 'Pesan terlalu panjang (maks 32.000 karakter).' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } })
+      }
+    }
+
+    // ── Model tier enforcement ───────────────────────────────────
+    // Free/guest users may not access paid models
+    const { modelRequiresPlan } = await import('@/lib/plans')
+    const requiredPlan = modelRequiresPlan(requestedModel ?? DEFAULT_MODEL)
+    if (requiredPlan && !isLoggedIn) {
+      return new Response(
+        JSON.stringify({ error: 'model_gated', message: 'Login dan upgrade plan untuk menggunakan model premium.' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } },
+      )
+    }
+
     const keys: Keys = {
       agentrouter: process.env.AGENTROUTER_API_KEY,
       openrouter:  process.env.OPENROUTER_API_KEY,
@@ -310,7 +343,7 @@ export async function POST(req: NextRequest) {
         { status: 500, headers: { 'Content-Type': 'application/json' } })
     }
 
-    incrementUsage(limitKey)
+    await incrementUsage(limitKey)
 
     const skill    = getSkillById(skillId)
     const language = getLanguageById(langId)
@@ -334,13 +367,12 @@ export async function POST(req: NextRequest) {
 
     return new Response(forwardSSEStream(response), {
       headers: {
-        'Content-Type':        'text/event-stream',
-        'Cache-Control':       'no-cache',
-        'Connection':          'keep-alive',
-        'X-RateLimit-Limit':   String(limitCheck.limit),
-        'X-RateLimit-Remaining': String(limitCheck.remaining - 1),
-        'X-RateLimit-LoggedIn': String(isLoggedIn),
-        'X-Provider':          usedProvider,
+        'Content-Type':            'text/event-stream',
+        'Cache-Control':           'no-cache',
+        'Connection':              'keep-alive',
+        'X-RateLimit-Limit':       String(limitCheck.limit),
+        'X-RateLimit-Remaining':   String(limitCheck.remaining - 1),
+        'X-RateLimit-LoggedIn':    String(isLoggedIn),
       },
     })
   } catch (error) {

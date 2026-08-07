@@ -159,10 +159,10 @@ function NewChatInputBox({
       <div className={cn(
         'relative rounded-2xl border transition-all duration-200 shadow-card',
         disabled
-          ? 'bg-[#141310] border-[#221f1a] opacity-60 cursor-not-allowed'
+          ? 'bg-[#ead6b5]/55 border-[#4a2d1c]/15 opacity-60 cursor-not-allowed'
           : (input.length > 0 || attachment)
-          ? 'bg-[#181613] border-[#d97757]/35 shadow-glow-sm'
-          : 'bg-[#181613] border-[#2e2b24] hover:border-[#3a3628]',
+          ? 'bg-[#fff4dc]/92 border-[#b5502e]/35 shadow-[7px_7px_0_rgba(36,23,17,0.08)]'
+          : 'bg-[#fff4dc]/82 border-[#4a2d1c]/18 hover:border-[#b5502e]/30',
       )}>
 
         {/* Attachment preview */}
@@ -207,12 +207,12 @@ function NewChatInputBox({
           placeholder={isProcessing ? 'Memproses file...' : placeholder}
           disabled={disabled || isProcessing}
           rows={1}
-          className="w-full bg-transparent text-[#f2ede4] placeholder-[#4a4538] text-sm leading-relaxed
+          className="w-full bg-transparent text-[#241711] placeholder-[#8a6b52] text-sm leading-relaxed
             resize-none outline-none px-4 pt-4 pb-14 min-h-[60px] max-h-[200px] disabled:cursor-not-allowed"
         />
 
         {/* Bottom toolbar */}
-        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 pb-3 pt-1 border-t border-[#221f1a]">
+        <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 pb-3 pt-1 border-t border-[#4a2d1c]/12">
           <div className="flex items-center gap-1 flex-wrap">
             <ModelSelector value={model} onChange={onModelChange} userPlan={userPlan} onPaidModelClick={onPaidModelClick} />
             <SkillSelector value={skillId} onChange={onSkillChange} />
@@ -514,7 +514,7 @@ export function ChatPage() {
     ? `, ${session.user.name.split(' ')[0]}` : ''
 
   return (
-    <div className="flex h-screen bg-[#0e0d0b] overflow-hidden">
+    <div className="paper-grain flex h-screen overflow-hidden bg-[#f4e6ca] text-[#241711]">
       {showLimitModal && <LimitModal isLoggedIn={isLoggedIn} onClose={() => setShowLimitModal(false)} t={t} />}
       {upgradeReason && <UpgradePrompt reason={upgradeReason} modelName={upgradeModelName} onClose={() => setUpgradeReason(null)} />}
 
@@ -538,15 +538,15 @@ export function ChatPage() {
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Mobile header */}
-        <header className="flex md:hidden items-center gap-2 px-4 py-3 border-b border-[#221f1a] bg-[#0e0d0b]/90 backdrop-blur-xl z-10 flex-shrink-0">
+        <header className="flex md:hidden items-center gap-2 px-4 py-3 border-b border-[#4a2d1c]/15 bg-[#f4e6ca]/90 backdrop-blur-xl z-10 flex-shrink-0">
           <button onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-xl text-[#625d4e] hover:text-[#a09880] hover:bg-white/5 transition-all flex-shrink-0">
+            className="p-2 rounded-xl text-[#60412f] hover:text-[#b5502e] hover:bg-[#fff4dc]/60 transition-all flex-shrink-0">
             <Menu size={18} />
           </button>
           <div className="flex-1 min-w-0">
             {activeSession
-              ? <h2 className="text-sm font-medium text-[#f2ede4] truncate">{activeSession.title}</h2>
-              : <span className="text-sm font-medium text-[#a09880]">Ngapak AI</span>}
+              ? <h2 className="text-sm font-medium text-[#241711] truncate">{activeSession.title}</h2>
+              : <span className="text-sm font-medium text-[#60412f]">Ngapak AI</span>}
           </div>
           <LanguageSelector value={langId} onChange={setLangId} />
         </header>
@@ -585,18 +585,18 @@ export function ChatPage() {
                       alt="Ngapak AI"
                       width={160}
                       height={160}
-                      className="object-contain w-40 h-40"
-                      style={{ filter: 'drop-shadow(0 0 24px rgba(217,119,87,0.5))' }}
+                      className="object-contain"
+                      style={{ width: 160, height: 160, filter: 'drop-shadow(0 0 24px rgba(217,119,87,0.5))' }}
                       priority
                     />
                   </div>
-                  <h1 className="font-display text-[2rem] sm:text-[2.4rem] leading-tight text-[#f2ede4] tracking-tight mb-2">
+                  <h1 className="font-display text-[2rem] sm:text-[2.4rem] leading-tight text-[#241711] tracking-tight mb-2">
                     {greetingLine}
                     {greetingUser && <span className="text-gradient">{greetingUser}</span>}
                   </h1>
-                  <p className="text-sm text-[#625d4e] mt-1">{t.welcomeSubtitle}</p>
+                  <p className="text-sm text-[#60412f] mt-1">{t.welcomeSubtitle}</p>
                   {!isLoggedIn && (
-                    <p className="text-xs text-[#4a4538] mt-1">
+                    <p className="text-xs text-[#8a6b52] mt-1">
                       Guest: {GUEST_LIMIT} chat/hari · Login Google: {USER_LIMIT} chat/hari
                     </p>
                   )}
@@ -641,11 +641,11 @@ export function ChatPage() {
                         className={cn(
                           'flex items-center gap-2 px-3.5 py-2 rounded-full border text-xs font-medium',
                           'transition-all duration-150',
-                          'border-[#2e2b24] text-[#a09880] hover:border-[#d97757]/40 hover:text-[#f2ede4] hover:bg-[#d97757]/[0.06]',
+                          'border-[#4a2d1c]/15 bg-[#fff4dc]/60 text-[#60412f] hover:border-[#b5502e]/40 hover:text-[#241711] hover:bg-[#fff4dc]',
                           'disabled:opacity-40 disabled:cursor-not-allowed',
                         )}
                       >
-                        <Icon size={12} className="text-[#d97757] flex-shrink-0" />
+                        <Icon size={12} className="text-[#b5502e] flex-shrink-0" />
                         <span>{s.label}</span>
                       </button>
                     )
