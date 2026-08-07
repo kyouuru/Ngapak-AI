@@ -175,24 +175,24 @@ function NewChatInputBox({
                 <button onClick={() => setAttachment(null)} className="text-red-400 hover:text-red-300"><X size={12} /></button>
               </div>
             ) : attachment.kind === 'image' ? (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1c1a16] border border-[#2e2b24]">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#ead6b5]/60 border border-[#4a2d1c]/15">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={`data:${attachment.mediaType};base64,${attachment.base64}`} alt={attachment.name}
-                  className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-[#2e2b24]" />
+                  className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-[#4a2d1c]/15" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-[#f2ede4] truncate">{attachment.name}</p>
-                  <p className="text-[10px] text-[#625d4e]">{attachment.sizeKb}KB · {attachment.mediaType.split('/')[1].toUpperCase()}</p>
+                  <p className="text-xs text-[#241711] truncate">{attachment.name}</p>
+                  <p className="text-[10px] text-[#8a6b52]">{attachment.sizeKb}KB · {attachment.mediaType.split('/')[1].toUpperCase()}</p>
                 </div>
-                <button onClick={() => setAttachment(null)} className="text-[#625d4e] hover:text-red-400 transition-colors"><X size={13} /></button>
+                <button onClick={() => setAttachment(null)} className="text-[#8a6b52] hover:text-red-500 transition-colors"><X size={13} /></button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#1c1a16] border border-[#2e2b24]">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#ead6b5]/60 border border-[#4a2d1c]/15">
                 <AttachFileIcon type="text" name={attachment.name} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-[#f2ede4] truncate">{attachment.name}</p>
-                  <p className="text-[10px] text-[#625d4e]">{attachment.language} · {attachment.content.length} chars</p>
+                  <p className="text-xs text-[#241711] truncate">{attachment.name}</p>
+                  <p className="text-[10px] text-[#8a6b52]">{attachment.language} · {attachment.content.length} chars</p>
                 </div>
-                <button onClick={() => setAttachment(null)} className="text-[#625d4e] hover:text-red-400 transition-colors"><X size={13} /></button>
+                <button onClick={() => setAttachment(null)} className="text-[#8a6b52] hover:text-red-500 transition-colors"><X size={13} /></button>
               </div>
             )}
           </div>
@@ -226,8 +226,8 @@ function NewChatInputBox({
               className={cn(
                 'flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] transition-all',
                 attachment && attachment.kind !== 'error'
-                  ? 'text-[#d97757] bg-[#d97757]/10 border border-[#d97757]/20'
-                  : 'text-[#625d4e] hover:text-[#a09880] hover:bg-white/5',
+                  ? 'text-[#b5502e] bg-[#b5502e]/10 border border-[#b5502e]/20'
+                  : 'text-[#8a6b52] hover:text-[#60412f] hover:bg-[#4a2d1c]/8',
               )}
               title="Upload gambar atau file kode"
             >
@@ -240,8 +240,8 @@ function NewChatInputBox({
               className={cn(
                 'flex items-center gap-1.5 px-2 py-1 rounded-lg text-[11px] font-medium transition-all',
                 webSearchEnabled
-                  ? 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20'
-                  : 'text-[#625d4e] hover:text-[#a09880] hover:bg-white/5',
+                  ? 'text-[#445d3b] bg-[#445d3b]/10 border border-[#445d3b]/20'
+                  : 'text-[#8a6b52] hover:text-[#60412f] hover:bg-[#4a2d1c]/8',
               )}
               title={webSearchEnabled ? 'Web search aktif' : 'Aktifkan web search'}
             >
@@ -251,17 +251,17 @@ function NewChatInputBox({
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-[10px] text-[#35312a] hidden sm:block">{isLoading ? '' : inputHint}</span>
+            <span className="text-[10px] text-[#a09880] hidden sm:block">{isLoading ? '' : inputHint}</span>
             <button
               onClick={isLoading ? () => {} : handleSubmit}
               disabled={!isLoading && !canSend}
               className={cn(
                 'w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150',
                 isLoading
-                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30'
+                  ? 'bg-red-500/15 text-red-500 hover:bg-red-500/25 border border-red-500/25'
                   : canSend
-                  ? 'bg-[#d97757] text-white hover:bg-[#c4663e] shadow-glow-sm'
-                  : 'bg-[#221f1a] text-[#35312a] cursor-not-allowed border border-[#2e2b24]',
+                  ? 'bg-[#b5502e] text-white hover:bg-[#8f3e24] shadow-[3px_3px_0_rgba(36,23,17,0.12)]'
+                  : 'bg-[#ead6b5] text-[#a09880] cursor-not-allowed border border-[#4a2d1c]/15',
               )}
             >
               {isLoading ? <Square size={13} /> : <ArrowUp size={15} />}
@@ -270,8 +270,8 @@ function NewChatInputBox({
         </div>
       </div>
 
-      <p className="text-center text-[10px] text-[#35312a] mt-2.5">
-        {footer ?? 'Ngapak AI bisa membuat kesalahan. Periksa informasi penting ya!'}
+      <p className="text-center text-[10px] text-[#a09880] mt-2.5">
+        {footer ?? 'Ngapak AI bisa gawe kesalahan. Priksa informasi penting ya!'}
       </p>
     </div>
   )

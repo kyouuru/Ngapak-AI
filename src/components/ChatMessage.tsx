@@ -120,11 +120,20 @@ export function ChatMessage({ message, isStreaming, langId = 'id', firstMessage 
             <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
           ) : (
             <div className="prose-chat">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {displayedContent}
-              </ReactMarkdown>
-              {/* Blinking cursor while streaming */}
-              {isStreaming && (
+              {displayedContent.length === 0 ? (
+                /* Loading dots while waiting for first chunk */
+                <div className="flex items-center gap-1.5 py-0.5">
+                  <span className="h-2 w-2 rounded-full bg-[#b5502e]/40 animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="h-2 w-2 rounded-full bg-[#b5502e]/40 animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="h-2 w-2 rounded-full bg-[#b5502e]/40 animate-bounce" style={{ animationDelay: '300ms' }} />
+                </div>
+              ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {displayedContent}
+                </ReactMarkdown>
+              )}
+              {/* Blinking cursor while streaming and content exists */}
+              {isStreaming && displayedContent.length > 0 && (
                 <span className="inline-block w-0.5 h-[1.1em] bg-[#d97757] ml-0.5 align-middle animate-pulse rounded-full" />
               )}
             </div>
