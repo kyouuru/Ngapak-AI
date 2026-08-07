@@ -93,7 +93,7 @@ export function Sidebar({
         />
         {!collapsed && (
           <>
-            <span className={cn('flex-1 text-xs truncate', isActive ? 'text-[#f2ede4]' : 'text-[#a09880]')}>
+            <span className={cn('flex-1 text-xs truncate', isActive ? 'text-[#b5502e]' : 'text-[#3d2b1f]')}>
               {session.title}
             </span>
             <button
@@ -142,13 +142,24 @@ export function Sidebar({
             'flex items-center gap-2.5 overflow-hidden transition-all duration-300',
             collapsed ? 'w-0 opacity-0 pointer-events-none' : 'flex-1 opacity-100',
           )}>
-            <div className="flex-shrink-0 flex items-center justify-center">
-              <Logo size={48} />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-sm font-semibold text-[#241711] leading-none whitespace-nowrap">Ngapak AI</h1>
-              <p className="text-[10px] text-[#8a6b52] mt-0.5 whitespace-nowrap">Saka tlatah Banyumas</p>
-            </div>
+            <Link
+              href="/"
+              onClick={onClose}
+              className="flex items-center gap-0 focus:outline-none focus:ring-2 focus:ring-[#b5502e]/40 rounded-xl flex-shrink-0"
+              style={{ gap: 0 }}
+              title="Ke halaman utama"
+            >
+              <div className="flex-shrink-0 flex items-center justify-center">
+                <Logo size={48} />
+              </div>
+              <div className="min-w-0" style={{ marginLeft: -14 }}>
+                <h1 className="text-sm font-bold text-[#241711] leading-none whitespace-nowrap uppercase">
+                  <span style={{ color: '#b5502e' }}>Ngapak</span>{' '}
+                  <span style={{ color: '#241711' }}>AI</span>
+                </h1>
+                <p className="text-[10px] text-[#8a6b52] mt-0.5 whitespace-nowrap">Saka tlatah Banyumas</p>
+              </div>
+            </Link>
           </div>
 
           {/* Desktop collapse toggle */}
