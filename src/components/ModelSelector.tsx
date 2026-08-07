@@ -122,7 +122,7 @@ export function ModelSelector({ value, onChange, userPlan = 'free', onPaidModelC
       </button>
 
       {open && (
-        <div className="absolute top-full mt-2 right-0 w-72 rounded-2xl border border-[#2e2b24] bg-[#141310] shadow-card z-50 overflow-hidden animate-fade-in">
+        <div className="absolute bottom-full mb-2 right-0 w-72 rounded-2xl border border-[#2e2b24] bg-[#141310] shadow-card z-50 overflow-hidden animate-fade-in">
           <div className="px-3 py-2.5 border-b border-[#221f1a]">
             <p className="text-[11px] font-medium text-[#625d4e] uppercase tracking-wider">Pilih Model</p>
             <p className="text-[10px] text-[#35312a] mt-0.5">OpenRouter & NVIDIA NIM</p>
