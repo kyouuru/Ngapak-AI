@@ -207,9 +207,12 @@ export function UpgradePage() {
               <tbody>
                 {[
                   { label: 'Chat per hari', values: PLANS.map((p) => `${p.limits.dailyMessages}x`) },
-                  { label: 'Model AI gratis', values: PLANS.map(() => '✅') },
-                  { label: 'Model Claude (berbayar)', values: ['❌', '✅', '✅'] },
-                  { label: 'Analisis gambar', values: ['❌', '✅', '✅'] },
+                  { label: 'Claude Opus 4.8 (AgentRouter)', values: ['✅', '✅', '✅'] },
+                  { label: 'Claude Opus 5 (AgentRouter)', values: ['✅', '✅', '✅'] },
+                  { label: 'GPT-5.6 Sol (AgentRouter)', values: ['✅', '✅', '✅'] },
+                  { label: 'Gemini 2.0 Flash', values: ['✅', '✅', '✅'] },
+                  { label: 'Llama 3.3 / DeepSeek V4', values: ['✅', '✅', '✅'] },
+                  { label: 'Analisis gambar (Vision)', values: ['❌', '✅', '✅'] },
                   { label: 'Upload file kode', values: ['✅', '✅', '✅'] },
                   { label: 'Semua bahasa daerah', values: ['✅', '✅', '✅'] },
                   { label: 'Priority response', values: ['❌', '❌', '✅'] },
@@ -232,10 +235,10 @@ export function UpgradePage() {
           <h3 className="text-xl font-bold text-center mb-8">Pertanyaan Umum</h3>
           <div className="space-y-4">
             {[
-              { q: 'Bagaimana cara bayar?', a: 'Pembayaran via transfer bank (BCA, Mandiri, BNI, BRI) atau QRIS. Setelah konfirmasi pembayaran, akun kamu langsung diupgrade.' },
-              { q: 'Apakah bisa dibatalkan?', a: 'Ya, kamu bisa batalkan kapan saja. Plan aktif sampai akhir periode billing.' },
-              { q: 'Kenapa model Claude butuh plan berbayar?', a: 'Model Claude dari Anthropic memiliki biaya API per penggunaan. Plan berbayar membantu kami menutup biaya tersebut.' },
-              { q: 'Apa bedanya analisis gambar?', a: 'Dengan plan Mini/Pro, kamu bisa upload foto/screenshot dan AI akan menganalisis isinya — cocok untuk debug UI, analisis diagram, atau membaca teks dari gambar.' },
+              { q: 'Bagaimana cara bayar?', a: 'Pembayaran via crypto — USDT, USDC, atau USDG di jaringan EVM (Ethereum, Base, Arbitrum, Polygon, BSC, Optimism) atau Solana. Harga tetap dalam USD, tidak terpengaruh fluktuasi harga token.' },
+              { q: 'Apakah semua model sudah termasuk semua plan?', a: 'Ya. Semua model AgentRouter (Claude Opus 4.8, Claude Opus 5, GPT-5.6 Sol), Gemini, Llama, dan DeepSeek tersedia di semua plan. Perbedaan utama ada di jumlah chat per hari dan fitur Vision.' },
+              { q: 'Apakah bisa dibatalkan?', a: 'Plan aktif selama periode billing (1 bulan). Tidak ada langganan otomatis — kamu bayar manual tiap bulan sesuai kebutuhan.' },
+              { q: 'Apa itu analisis gambar (Vision)?', a: 'Dengan plan Mini/Pro, kamu bisa upload foto atau screenshot dan AI akan menganalisis isinya — cocok untuk debug UI, analisis diagram, atau membaca teks dari gambar.' },
             ].map((faq) => (
               <div key={faq.q} className="rounded-xl border border-[#4a2d1c]/15 bg-[#fff4dc]/65 p-5">
                 <h4 className="font-medium text-[#241711] mb-2">{faq.q}</h4>

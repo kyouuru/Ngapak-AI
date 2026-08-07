@@ -291,7 +291,7 @@ export function ChatPage() {
   const [streamingContent, setStreamingContent] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [model, setModel] = useState('deepseek/deepseek-chat-v3-0324:free')
+  const [model, setModel] = useState('agentrouter/claude-opus-4-8')
   const [skillId, setSkillId] = useState('general')
   const [langId, setLangId] = useState('ngapak')
   const [limitUsed, setLimitUsed] = useState(0)

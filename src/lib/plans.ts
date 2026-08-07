@@ -27,13 +27,14 @@ export const PLANS: Plan[] = [
     description: 'Coba Ngapak AI tanpa biaya',
     features: [
       '5 chat per hari',
-      'Model AI gratis (DeepSeek, Gemini)',
+      'Claude Opus 4.8, Claude Opus 5, GPT-5.6 Sol',
+      'Gemini 2.0 Flash, Llama 3.3, DeepSeek V4',
       'Semua bahasa daerah',
-      'Semua skill/mode',
+      'Upload file kode',
     ],
     limits: {
       dailyMessages: 5,
-      models: ['deepseek/deepseek-chat-v3-0324:free', 'google/gemini-2.0-flash-001', 'meta-llama/llama-3.3-70b-instruct'],
+      models: ['agentrouter/claude-opus-4-8', 'google/gemini-2.0-flash-001', 'meta-llama/llama-3.3-70b-instruct'],
       vision: false,
       fileUpload: true,
       priority: false,
@@ -49,15 +50,15 @@ export const PLANS: Plan[] = [
     badgeColor: 'text-violet-400 bg-violet-400/10 border-violet-400/20',
     features: [
       '50 chat per hari',
-      'Semua model AI (termasuk Claude)',
+      'Semua model AI (AgentRouter, OpenRouter, NVIDIA)',
+      'Claude Opus 4.8, Opus 5, GPT-5.6 Sol',
       'Analisis gambar (Vision AI)',
       'Upload & analisis file kode',
       'Semua bahasa daerah',
-      'Semua skill/mode',
     ],
     limits: {
       dailyMessages: 50,
-      models: ['deepseek/deepseek-chat-v3-0324:free', 'google/gemini-2.0-flash-001', 'anthropic/claude-3.5-haiku', 'anthropic/claude-3.5-sonnet', 'meta-llama/llama-3.3-70b-instruct'],
+      models: ['agentrouter/claude-opus-4-8', 'agentrouter/claude-opus-5', 'agentrouter/gpt-5.6-sol', 'google/gemini-2.0-flash-001', 'meta-llama/llama-3.3-70b-instruct', 'nvidia/deepseek-v4-pro'],
       vision: true,
       fileUpload: true,
       priority: false,
@@ -74,16 +75,16 @@ export const PLANS: Plan[] = [
     features: [
       '200 chat per hari',
       'Semua model AI premium',
+      'Claude Opus 4.8, Opus 5, GPT-5.6 Sol',
       'Analisis gambar (Vision AI)',
       'Upload & analisis semua jenis file',
       'Priority response',
       'Semua bahasa daerah',
-      'Semua skill/mode',
       'Akses fitur beta',
     ],
     limits: {
       dailyMessages: 200,
-      models: ['deepseek/deepseek-chat-v3-0324:free', 'google/gemini-2.0-flash-001', 'anthropic/claude-3.5-haiku', 'anthropic/claude-3.5-sonnet', 'anthropic/claude-3-opus-20240229', 'meta-llama/llama-3.3-70b-instruct'],
+      models: ['agentrouter/claude-opus-4-8', 'agentrouter/claude-opus-5', 'agentrouter/gpt-5.6-sol', 'google/gemini-2.0-flash-001', 'meta-llama/llama-3.3-70b-instruct', 'nvidia/deepseek-v4-pro'],
       vision: true,
       fileUpload: true,
       priority: true,
@@ -99,14 +100,9 @@ export function formatPrice(price: number): string {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price)
 }
 
-// Model yang butuh plan berbayar
-export const PAID_MODELS = [
-  'anthropic/claude-3.5-sonnet',
-  'anthropic/claude-3.5-haiku',
-  'anthropic/claude-3-opus-20240229',
-]
+// Model yang butuh plan berbayar (kosong — semua AgentRouter models sudah free via key sendiri)
+export const PAID_MODELS: string[] = []
 
-export function modelRequiresPlan(modelId: string): PlanId | null {
-  if (PAID_MODELS.includes(modelId)) return 'mini'
+export function modelRequiresPlan(_modelId: string): PlanId | null {
   return null
 }

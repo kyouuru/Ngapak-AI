@@ -23,55 +23,51 @@ interface ModelConfig {
 }
 
 export const MODEL_MAP: Record<string, ModelConfig> = {
-  // ── Default model — AgentRouter first (fastest routing), NVIDIA fallback, OpenRouter last ──
-  'deepseek/deepseek-chat-v3-0324:free': {
+  // ── DEFAULT: AgentRouter claude-opus-4-8 (prioritas utama) ──
+  'agentrouter/claude-opus-4-8': {
     agentrouter: 'claude-opus-4-8',
+    openrouter:  'anthropic/claude-3.5-sonnet',
     nvidia:      'deepseek-ai/deepseek-v4-pro',
-    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
     primary:     'agentrouter',
   },
+  // ── AgentRouter claude-opus-5 ──
+  'agentrouter/claude-opus-5': {
+    agentrouter: 'claude-opus-5',
+    openrouter:  'anthropic/claude-3.5-sonnet',
+    nvidia:      'deepseek-ai/deepseek-v4-pro',
+    primary:     'agentrouter',
+  },
+  // ── AgentRouter gpt-5.6-sol ──
+  'agentrouter/gpt-5.6-sol': {
+    agentrouter: 'gpt-5.6-sol',
+    openrouter:  'openai/gpt-4o',
+    nvidia:      'deepseek-ai/deepseek-v4-pro',
+    primary:     'agentrouter',
+  },
+  // ── Gemini Flash (OpenRouter) ──
   'google/gemini-2.0-flash-001': {
     openrouter:  'google/gemini-2.0-flash-001',
     agentrouter: 'claude-opus-4-8',
     nvidia:      'deepseek-ai/deepseek-v4-pro',
     primary:     'openrouter',
   },
+  // ── Llama (NVIDIA primary, OR fallback) ──
   'meta-llama/llama-3.3-70b-instruct': {
-    agentrouter: 'claude-opus-4-8',
     nvidia:      'meta/llama-3.3-70b-instruct',
     openrouter:  'meta-llama/llama-3.3-70b-instruct',
+    agentrouter: 'claude-opus-4-8',
     primary:     'nvidia',
   },
-  // ── NVIDIA DeepSeek V4 Pro (direct) ──
+  // ── DeepSeek V4 (NVIDIA primary) ──
   'nvidia/deepseek-v4-pro': {
     nvidia:      'deepseek-ai/deepseek-v4-pro',
     agentrouter: 'claude-opus-4-8',
     openrouter:  'deepseek/deepseek-chat-v3-0324:free',
     primary:     'nvidia',
   },
-  // ── NVIDIA Nemotron ──
-  'nvidia/llama-3.1-nemotron-70b-instruct': {
-    nvidia:      'nvidia/llama-3.1-nemotron-70b-instruct',
-    agentrouter: 'claude-opus-4-8',
-    openrouter:  'meta-llama/llama-3.1-70b-instruct',
-    primary:     'nvidia',
-  },
-  // ── Claude — AgentRouter first ──
-  'anthropic/claude-3.5-haiku': {
-    agentrouter: 'claude-opus-4-8',
-    openrouter:  'anthropic/claude-3.5-haiku',
-    nvidia:      'deepseek-ai/deepseek-v4-pro',
-    primary:     'agentrouter',
-  },
-  'anthropic/claude-3.5-sonnet': {
-    agentrouter: 'claude-opus-4-8',
-    openrouter:  'anthropic/claude-3.5-sonnet',
-    nvidia:      'deepseek-ai/deepseek-v4-pro',
-    primary:     'agentrouter',
-  },
 }
 
-const DEFAULT_MODEL = 'deepseek/deepseek-chat-v3-0324:free'
+const DEFAULT_MODEL = 'agentrouter/claude-opus-4-8'
 
 /* ─── System prompt ──────────────────────────────────────── */
 const BASE_SYSTEM_PROMPT = `Kamu adalah Ngapak AI, asisten AI yang pintar, ramah, dan helpful buatan Danixyz.

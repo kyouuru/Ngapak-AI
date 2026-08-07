@@ -3,12 +3,14 @@
 import { signIn, signOut } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
 import {
-  LogIn, LogOut, User, Settings, Zap,
+  LogOut, Settings, Zap,
   ChevronUp, Unlink, Crown, BarChart2,
+  X, User, Wallet, Mail, Save,
 } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { useAccount, useDisconnect } from 'wagmi'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 interface AuthButtonProps {
   user?: { name?: string | null; email?: string | null; image?: string | null } | null
@@ -21,17 +23,118 @@ interface AuthButtonProps {
 
 function UserAvatar({ user, size = 28 }: { user: AuthButtonProps['user']; size?: number }) {
   if (user?.image) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={user.image} alt={user.name ?? ''} style={{ width: size, height: size }}
-        className="rounded-full flex-shrink-0 ring-1 ring-[#4a2d1c]/20" />
-    )
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={user.image} alt={user.name ?? ''} style={{ width: size, height: size }} className="rounded-full flex-shrink-0 ring-1 ring-[#4a2d1c]/20" />
   }
   const initial = (user?.name ?? user?.email ?? '?')[0]!.toUpperCase()
   return (
-    <div style={{ width: size, height: size }}
-      className="rounded-full bg-[#b5502e] flex items-center justify-center flex-shrink-0 text-[#fff4dc] font-bold text-xs ring-1 ring-[#b5502e]/40">
+    <div style={{ width: size, height: size }} className="rounded-full bg-[#b5502e] flex items-center justify-center flex-shrink-0 text-[#fff4dc] font-bold text-xs ring-1 ring-[#b5502e]/40">
       {initial}
+    </div>
+  )
+}
+
+function AccountSettingsModal({ user, onClose }: { user: AuthButtonProps['user']; onClose: () => void }) {
+  const { address: evmAddress, isConnected: evmConnected } = useAccount()
+  const { disconnect } = useDisconnect()
+  const [displayName, setDisplayName] = useState(user?.name ?? '')
+  const [saved, setSaved] = useState(false)
+
+  const handleSave = () => {
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-[#241711]/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="paper-grain relative w-full max-w-md rounded-2xl bg-[#fff4dc] border border-[#4a2d1c]/15 shadow-[10px_10px_0_rgba(36,23,17,0.15)] overflow-hidden text-[#241711]">
+        <div className="h-1 bg-gradient-to-r from-[#b5502e] via-[#9b6a2f] to-[#445d3b]" />
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[#4a2d1c]/12">
+          <div className="flex items-center gap-2">
+            <Settings size={16} className="text-[#b5502e]" />
+            <h2 className="text-sm font-semibold">Pengaturan Akun</h2>
+          </div>
+          <button onClick={onClose} className="text-[#8a6b52] hover:text-[#b5502e] p-1 rounded-lg transition-all"><X size={16} /></button>
+        </div>
+        <div className="px-5 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Identitas */}
+          <div className="flex items-center gap-4 p-4 rounded-xl bg-[#f4e6ca]/60 border border-[#4a2d1c]/10">
+            <UserAvatar user={user} size={48} />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[#241711]">{user?.name ?? 'Pengguna'}</p>
+              <p className="text-xs text-[#8a6b52] truncate">{user?.email}</p>
+              <p className="text-[10px] text-[#a09880] mt-0.5">Login via Google</p>
+            </div>
+          </div>
+
+          {/* Nama tampilan */}
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-[#60412f] mb-2">
+              <User size={12} /> Nama Tampilan
+            </label>
+            <input
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
+              placeholder="Nama kamu..."
+              className="w-full px-3 py-2.5 rounded-xl border border-[#4a2d1c]/20 bg-[#fff4dc] text-sm text-[#241711] placeholder-[#a09880] focus:outline-none focus:border-[#b5502e]/50 focus:ring-2 focus:ring-[#b5502e]/10"
+            />
+          </div>
+
+          {/* Email readonly */}
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-[#60412f] mb-2">
+              <Mail size={12} /> Email
+            </label>
+            <div className="px-3 py-2.5 rounded-xl border border-[#4a2d1c]/15 bg-[#f4e6ca]/50 text-sm text-[#8a6b52]">
+              {user?.email}
+              <span className="ml-2 text-[10px] text-[#a09880]">(dari Google, tidak bisa diubah)</span>
+            </div>
+          </div>
+
+          {/* Wallet EVM */}
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-[#60412f] mb-2">
+              <Wallet size={12} /> Wallet EVM
+            </label>
+            {evmConnected && evmAddress ? (
+              <div className="flex items-center justify-between px-3 py-2.5 rounded-xl border-2 border-[#445d3b] bg-[#445d3b]/8">
+                <div>
+                  <p className="text-xs font-medium text-[#445d3b]">Terhubung</p>
+                  <p className="text-[11px] font-mono text-[#241711] mt-0.5 break-all">{evmAddress}</p>
+                </div>
+                <button onClick={() => disconnect()} className="flex items-center gap-1 text-xs text-[#8a6b52] hover:text-red-500 transition-colors ml-3 flex-shrink-0">
+                  <Unlink size={12} /> Putuskan
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-[#8a6b52]">Belum ada wallet yang terhubung.</p>
+                <ConnectButton label="Connect Wallet EVM" />
+              </div>
+            )}
+          </div>
+
+          {/* Solana info */}
+          <div>
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-[#60412f] mb-2">
+              <Zap size={12} /> Wallet Solana
+            </label>
+            <p className="text-xs text-[#8a6b52] px-3 py-2.5 rounded-xl border border-[#4a2d1c]/15 bg-[#f4e6ca]/50">
+              Wallet Solana hanya digunakan saat checkout. Connect lewat modal pembayaran.
+            </p>
+          </div>
+
+          {/* Save */}
+          <button onClick={handleSave} className={cn(
+            'w-full py-3 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2',
+            saved ? 'bg-[#445d3b] text-[#fff4dc]' : 'bg-[#b5502e] hover:bg-[#8f3e24] text-[#fff4dc]',
+          )}>
+            <Save size={14} />
+            {saved ? 'Tersimpan ✓' : 'Simpan Perubahan'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -41,11 +144,11 @@ export function AuthButton({
   limitUsed = 0, limitMax = 10, userPlan = 'free',
 }: AuthButtonProps) {
   const [open, setOpen] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const { address: evmAddress, isConnected: evmConnected } = useAccount()
   const { disconnect } = useDisconnect()
 
-  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
@@ -56,15 +159,11 @@ export function AuthButton({
 
   if (!user) {
     return (
-      <button
-        onClick={() => signIn('google')}
-        className={cn(
-          'flex items-center gap-2 rounded-xl text-xs font-medium transition-all w-full justify-center',
+      <button onClick={() => signIn('google')}
+        className={cn('flex items-center gap-2 rounded-xl text-xs font-medium transition-all w-full justify-center',
           'bg-[#b5502e]/10 hover:bg-[#b5502e]/18 text-[#b5502e] border border-[#b5502e]/20 hover:border-[#b5502e]/35',
-          compact ? 'p-2' : 'px-3 py-2',
-        )}
-        title="Login dengan Google"
-      >
+          compact ? 'p-2' : 'px-3 py-2')}
+        title="Login dengan Google">
         <svg width="12" height="12" viewBox="0 0 24 24" className="flex-shrink-0">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
           <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -81,115 +180,103 @@ export function AuthButton({
   const planLabel = userPlan === 'free' ? 'Plan Gratis' : userPlan === 'mini' ? 'Plan Mini' : 'Plan Pro'
 
   return (
-    <div ref={ref} className="relative">
-      {/* Trigger button */}
-      <button
-        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
-        className={cn(
-          'flex items-center gap-2 rounded-xl border transition-all w-full',
-          'bg-[#fff4dc]/70 border-[#4a2d1c]/18 hover:border-[#b5502e]/40 hover:bg-[#fff4dc]',
-          compact ? 'p-1.5 justify-center' : 'px-2.5 py-2',
-        )}
-        title={compact ? (user.name ?? user.email ?? 'Akun') : undefined}
-      >
-        <UserAvatar user={user} size={compact ? 22 : 26} />
-        {!compact && (
-          <>
-            <span className="flex-1 text-xs font-medium text-[#241711] truncate text-left">
-              {user.name ?? user.email?.split('@')[0]}
-            </span>
-            <ChevronUp size={12} className={cn('text-[#8a6b52] transition-transform flex-shrink-0', open ? 'rotate-0' : 'rotate-180')} />
-          </>
-        )}
-      </button>
+    <>
+      {showSettings && <AccountSettingsModal user={user} onClose={() => setShowSettings(false)} />}
 
-      {/* Popup menu */}
-      {open && (
-        <div
-          className="absolute bottom-full mb-2 left-0 right-0 min-w-[220px] z-50
-            rounded-2xl border border-[#4a2d1c]/18 bg-[#fff4dc] shadow-[0_8px_32px_rgba(36,23,17,0.18)]
-            overflow-hidden"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* User identity */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b border-[#4a2d1c]/12 bg-[#f4e6ca]/60">
-            <UserAvatar user={user} size={36} />
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-[#241711] truncate">{user.name ?? 'Pengguna'}</p>
-              <p className="text-[10px] text-[#8a6b52] truncate">{user.email}</p>
-            </div>
-          </div>
+      <div ref={ref} className="relative">
+        {/* Trigger */}
+        <button onClick={(e) => { e.stopPropagation(); setOpen((v) => !v) }}
+          className={cn('flex items-center gap-2 rounded-xl border transition-all w-full',
+            'bg-[#fff4dc]/70 border-[#4a2d1c]/18 hover:border-[#b5502e]/40 hover:bg-[#fff4dc]',
+            compact ? 'p-1.5 justify-center' : 'px-2.5 py-2')}
+          title={compact ? (user.name ?? user.email ?? 'Akun') : undefined}>
+          <UserAvatar user={user} size={compact ? 22 : 26} />
+          {!compact && (
+            <>
+              <span className="flex-1 text-xs font-medium text-[#241711] truncate text-left">{user.name ?? user.email?.split('@')[0]}</span>
+              <ChevronUp size={12} className={cn('text-[#8a6b52] transition-transform flex-shrink-0', open ? 'rotate-0' : 'rotate-180')} />
+            </>
+          )}
+        </button>
 
-          <div className="px-2 py-2 space-y-0.5">
-            {/* Plan */}
-            <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#f4e6ca]/60">
-              <div className="flex items-center gap-2">
-                <Crown size={13} className="text-[#b5502e]" />
-                <span className="text-xs font-medium text-[#241711]">{planLabel}</span>
+        {/* Popup menu */}
+        {open && (
+          <div className="absolute bottom-full mb-2 left-0 right-0 min-w-[220px] z-50 rounded-2xl border border-[#4a2d1c]/18 bg-[#fff4dc] shadow-[0_8px_32px_rgba(36,23,17,0.18)] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}>
+            {/* Identity header */}
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-[#4a2d1c]/12 bg-[#f4e6ca]/60">
+              <UserAvatar user={user} size={36} />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-[#241711] truncate">{user.name ?? 'Pengguna'}</p>
+                <p className="text-[10px] text-[#8a6b52] truncate">{user.email}</p>
               </div>
-              {userPlan === 'free' && (
-                <Link href="/upgrade" onClick={() => setOpen(false)}
-                  className="text-[10px] font-semibold text-[#b5502e] hover:text-[#8f3e24] transition-colors">
-                  Upgrade →
-                </Link>
-              )}
             </div>
 
-            {/* Limit harian */}
-            <div className="px-3 py-2 rounded-xl bg-[#f4e6ca]/60">
-              <div className="flex items-center justify-between mb-1.5">
+            <div className="px-2 py-2 space-y-0.5">
+              {/* Plan */}
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#f4e6ca]/60">
                 <div className="flex items-center gap-2">
-                  <BarChart2 size={13} className="text-[#8a6b52]" />
-                  <span className="text-xs font-medium text-[#241711]">Limit Harian</span>
+                  <Crown size={13} className="text-[#b5502e]" />
+                  <span className="text-xs font-medium text-[#241711]">{planLabel}</span>
                 </div>
-                <span className={cn('text-xs font-bold', limitUsed >= limitMax ? 'text-red-500' : 'text-[#241711]')}>
-                  {limitUsed}/{limitMax}
-                </span>
+                {userPlan === 'free' && (
+                  <Link href="/upgrade" onClick={() => setOpen(false)} className="text-[10px] font-semibold text-[#b5502e] hover:text-[#8f3e24]">Upgrade →</Link>
+                )}
               </div>
-              <div className="h-1.5 rounded-full bg-[#4a2d1c]/12 overflow-hidden">
-                <div
-                  className={cn('h-full rounded-full transition-all', limitPct >= 100 ? 'bg-red-500' : limitPct >= 80 ? 'bg-[#b5502e]' : 'bg-[#445d3b]')}
-                  style={{ width: `${Math.min(limitPct, 100)}%` }}
-                />
-              </div>
-            </div>
 
-            {/* Wallet EVM */}
-            <div className="px-3 py-2 rounded-xl bg-[#f4e6ca]/60">
-              <div className="flex items-center gap-2 mb-1">
-                <Zap size={13} className="text-[#8a6b52]" />
-                <span className="text-xs font-medium text-[#241711]">Wallet EVM</span>
-              </div>
-              {evmConnected && shortAddr ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono text-[#60412f]">{shortAddr}</span>
-                  <button onClick={() => { disconnect(); setOpen(false) }}
-                    className="flex items-center gap-1 text-[10px] text-[#8a6b52] hover:text-red-500 transition-colors">
-                    <Unlink size={11} /> Putuskan
-                  </button>
+              {/* Limit */}
+              <div className="px-3 py-2 rounded-xl bg-[#f4e6ca]/60">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <BarChart2 size={13} className="text-[#8a6b52]" />
+                    <span className="text-xs font-medium text-[#241711]">Limit Harian</span>
+                  </div>
+                  <span className={cn('text-xs font-bold', limitUsed >= limitMax ? 'text-red-500' : 'text-[#241711]')}>{limitUsed}/{limitMax}</span>
                 </div>
-              ) : (
-                <p className="text-[10px] text-[#8a6b52]">Belum terhubung</p>
-              )}
+                <div className="h-1.5 rounded-full bg-[#4a2d1c]/12 overflow-hidden">
+                  <div className={cn('h-full rounded-full transition-all', limitPct >= 100 ? 'bg-red-500' : limitPct >= 80 ? 'bg-[#b5502e]' : 'bg-[#445d3b]')} style={{ width: `${Math.min(limitPct, 100)}%` }} />
+                </div>
+              </div>
+
+              {/* Wallet EVM */}
+              <div className="px-3 py-2 rounded-xl bg-[#f4e6ca]/60">
+                <div className="flex items-center gap-2 mb-1">
+                  <Zap size={13} className="text-[#8a6b52]" />
+                  <span className="text-xs font-medium text-[#241711]">Wallet EVM</span>
+                </div>
+                {evmConnected && shortAddr ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono text-[#60412f]">{shortAddr}</span>
+                    <button onClick={() => { disconnect(); setOpen(false) }} className="flex items-center gap-1 text-[10px] text-[#8a6b52] hover:text-red-500 transition-colors">
+                      <Unlink size={11} /> Putuskan
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-[#8a6b52]">Belum terhubung</p>
+                )}
+              </div>
+
+              <div className="border-t border-[#4a2d1c]/10 my-1" />
+
+              {/* Pengaturan Akun — buka modal */}
+              <button
+                onClick={() => { setOpen(false); setShowSettings(true) }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-[#60412f] hover:bg-[#ead6b5]/60 transition-colors"
+              >
+                <Settings size={13} className="text-[#8a6b52]" />
+                Pengaturan Akun
+              </button>
+
+              {/* Logout */}
+              <button onClick={() => { signOut(); setOpen(false) }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-red-500 hover:bg-red-50 transition-colors">
+                <LogOut size={13} />
+                {logoutLabel}
+              </button>
             </div>
-
-            <div className="border-t border-[#4a2d1c]/10 my-1" />
-
-            {/* Settings (placeholder) */}
-            <button className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-[#60412f] hover:bg-[#ead6b5]/60 transition-colors">
-              <Settings size={13} className="text-[#8a6b52]" />
-              Pengaturan Akun
-            </button>
-
-            {/* Logout */}
-            <button onClick={() => { signOut(); setOpen(false) }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-red-500 hover:bg-red-50 transition-colors">
-              <LogOut size={13} />
-              {logoutLabel}
-            </button>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   )
 }

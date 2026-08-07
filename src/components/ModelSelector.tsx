@@ -14,58 +14,58 @@ interface ModelSelectorProps {
 
 const MODELS = [
   {
-    id: 'deepseek/deepseek-chat-v3-0324:free',
-    name: 'DeepSeek V3',
-    desc: 'AgentRouter · Cepet & pinter',
-    icon: Cpu,
+    id: 'agentrouter/claude-opus-4-8',
+    name: 'Claude Opus 4.8',
+    desc: 'AgentRouter · Default, cepat & pinter',
+    icon: Brain,
     badge: 'Free ⭐',
-    badgeColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+    badgeColor: 'text-emerald-600 bg-emerald-400/10 border-emerald-400/20',
+    provider: 'agentrouter',
+  },
+  {
+    id: 'agentrouter/claude-opus-5',
+    name: 'Claude Opus 5',
+    desc: 'AgentRouter · Model terbaru Anthropic',
+    icon: Brain,
+    badge: 'AgentRouter',
+    badgeColor: 'text-violet-500 bg-violet-400/10 border-violet-400/20',
+    provider: 'agentrouter',
+  },
+  {
+    id: 'agentrouter/gpt-5.6-sol',
+    name: 'GPT-5.6 Sol',
+    desc: 'AgentRouter · OpenAI terkini',
+    icon: Flame,
+    badge: 'AgentRouter',
+    badgeColor: 'text-blue-500 bg-blue-400/10 border-blue-400/20',
     provider: 'agentrouter',
   },
   {
     id: 'google/gemini-2.0-flash-001',
     name: 'Gemini 2.0 Flash',
-    desc: 'Gratis · Google, super cepet',
+    desc: 'OpenRouter · Google, super cepat',
     icon: Flame,
     badge: 'Free',
-    badgeColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+    badgeColor: 'text-emerald-500 bg-emerald-400/10 border-emerald-400/20',
     provider: 'openrouter',
   },
   {
     id: 'meta-llama/llama-3.3-70b-instruct',
     name: 'Llama 3.3 70B',
-    desc: 'Gratis · Open source Meta',
+    desc: 'NVIDIA · Open source Meta',
     icon: Cpu,
     badge: 'Free',
-    badgeColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
-    provider: 'openrouter',
-  },
-  {
-    id: 'nvidia/llama-3.1-nemotron-70b-instruct',
-    name: 'Nemotron 70B',
-    desc: 'NVIDIA NIM · Reasoning kuat',
-    icon: Zap,
-    badge: 'NVIDIA',
-    badgeColor: 'text-green-400 bg-green-400/10 border-green-400/20',
+    badgeColor: 'text-emerald-500 bg-emerald-400/10 border-emerald-400/20',
     provider: 'nvidia',
   },
   {
-    id: 'anthropic/claude-3.5-haiku',
-    name: 'Claude Haiku',
-    desc: 'AgentRouter · Cepet & hemat',
+    id: 'nvidia/deepseek-v4-pro',
+    name: 'DeepSeek V4 Pro',
+    desc: 'NVIDIA NIM · Reasoning kuat',
     icon: Zap,
-    badge: 'Paid',
-    badgeColor: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
-    provider: 'agentrouter',
-  },
-  {
-    id: 'anthropic/claude-3.5-sonnet',
-    name: 'Claude Opus',
-    desc: 'AgentRouter · Paling pinter',
-    icon: Brain,
-    badge: 'Paid',
-    badgeColor: 'text-violet-400 bg-violet-400/10 border-violet-400/20',
-    provider: 'agentrouter',
+    badge: 'NVIDIA',
+    badgeColor: 'text-green-500 bg-green-400/10 border-green-400/20',
+    provider: 'nvidia',
   },
 ]
 
@@ -105,18 +105,18 @@ export function ModelSelector({ value, onChange, userPlan = 'free', onPaidModelC
       <button
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all
-          bg-[#141310] border border-[#2e2b24] text-[#a09880] hover:text-[#f2ede4] hover:border-[#3a3628]"
+          bg-[#fff4dc]/80 border border-[#4a2d1c]/18 text-[#60412f] hover:text-[#241711] hover:border-[#b5502e]/35"
       >
-        <Icon size={12} className={isPaidModel && userPlan === 'free' ? 'text-amber-400' : 'text-[#d97757]'} />
+        <Icon size={12} className={isPaidModel && userPlan === 'free' ? 'text-amber-500' : 'text-[#b5502e]'} />
         <span className="hidden sm:inline">{selected.name}</span>
-        <ChevronDown size={11} className={cn('transition-transform text-[#625d4e]', open && 'rotate-180')} />
+        <ChevronDown size={11} className={cn('transition-transform text-[#8a6b52]', open && 'rotate-180')} />
       </button>
 
       {open && (
-        <div className="absolute bottom-full mb-2 right-0 w-72 rounded-2xl border border-[#2e2b24] bg-[#141310] shadow-card z-50 overflow-hidden animate-fade-in">
-          <div className="px-3 py-2.5 border-b border-[#221f1a]">
-            <p className="text-[11px] font-medium text-[#625d4e] uppercase tracking-wider">Pilih Model</p>
-            <p className="text-[10px] text-[#35312a] mt-0.5">OpenRouter & NVIDIA NIM</p>
+        <div className="absolute bottom-full mb-2 right-0 w-72 rounded-2xl border border-[#4a2d1c]/18 bg-[#fff4dc] shadow-[0_8px_32px_rgba(36,23,17,0.15)] z-50 overflow-hidden">
+          <div className="px-3 py-2.5 border-b border-[#4a2d1c]/12 bg-[#f4e6ca]/60">
+            <p className="text-[11px] font-semibold text-[#60412f] uppercase tracking-wider">Pilih Model AI</p>
+            <p className="text-[10px] text-[#8a6b52] mt-0.5">AgentRouter · OpenRouter · NVIDIA NIM</p>
           </div>
           <div className="p-1.5">
             {MODELS.map((model) => {
@@ -131,29 +131,29 @@ export function ModelSelector({ value, onChange, userPlan = 'free', onPaidModelC
                   className={cn(
                     'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left',
                     isActive
-                      ? 'bg-[#d97757]/10 border border-[#d97757]/20'
-                      : 'hover:bg-white/[0.04] border border-transparent',
+                      ? 'bg-[#b5502e]/10 border border-[#b5502e]/25'
+                      : 'hover:bg-[#ead6b5]/50 border border-transparent',
                   )}
                 >
                   <div className={cn(
                     'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-                    isActive ? 'bg-[#d97757]/20' : 'bg-[#1c1a16]',
+                    isActive ? 'bg-[#b5502e]/15' : 'bg-[#ead6b5]/70',
                   )}>
-                    <MIcon size={14} className={isActive ? 'text-[#e8a87c]' : 'text-[#625d4e]'} />
+                    <MIcon size={14} className={isActive ? 'text-[#b5502e]' : 'text-[#8a6b52]'} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className={cn('text-sm font-medium', isActive ? 'text-[#f2ede4]' : 'text-[#a09880]')}>
+                      <span className={cn('text-sm font-medium', isActive ? 'text-[#b5502e]' : 'text-[#241711]')}>
                         {model.name}
                       </span>
                       <span className={cn('text-[10px] px-1.5 py-0.5 rounded-md border font-medium', model.badgeColor)}>
                         {model.badge}
                       </span>
-                      {isLocked && <Lock size={10} className="text-amber-400" />}
+                      {isLocked && <Lock size={10} className="text-amber-500" />}
                     </div>
-                    <p className="text-[11px] text-[#625d4e] mt-0.5">{model.desc}</p>
+                    <p className="text-[11px] text-[#8a6b52] mt-0.5">{model.desc}</p>
                   </div>
-                  {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[#d97757] flex-shrink-0" />}
+                  {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[#b5502e] flex-shrink-0" />}
                 </button>
               )
             })}
