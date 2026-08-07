@@ -28,18 +28,17 @@ export const PLANS: Plan[] = [
     features: [
       '5 chat per hari',
       'Claude Opus 4.8, Claude Opus 5, GPT-5.6 Sol',
-      'Gemini 2.0 Flash, Llama 3.3, DeepSeek V4',
+      'Gemini 2.0 Flash, Llama 3.3, DeepSeek V4 Flash & Pro',
       'Semua bahasa daerah',
       'Upload file kode',
     ],
     limits: {
       dailyMessages: 5,
-      models: ['agentrouter/claude-opus-4-8', 'google/gemini-2.0-flash-001', 'meta-llama/llama-3.3-70b-instruct'],
+      models: ['agentrouter/claude-opus-4-8', 'google/gemini-2.0-flash-001', 'meta-llama/llama-3.3-70b-instruct', 'nvidia/deepseek-v4-flash'],
       vision: false,
       fileUpload: true,
       priority: false,
-    },
-  },
+    },  },
   {
     id: 'mini',
     name: 'Mini',
@@ -52,13 +51,14 @@ export const PLANS: Plan[] = [
       '50 chat per hari',
       'Semua model AI (AgentRouter, OpenRouter, NVIDIA)',
       'Claude Opus 4.8, Opus 5, GPT-5.6 Sol',
+      'DeepSeek V4 Flash (Thinking) & V4 Pro',
       'Analisis gambar (Vision AI)',
       'Upload & analisis file kode',
       'Semua bahasa daerah',
     ],
     limits: {
       dailyMessages: 50,
-      models: ['agentrouter/claude-opus-4-8', 'agentrouter/claude-opus-5', 'agentrouter/gpt-5.6-sol', 'google/gemini-2.0-flash-001', 'meta-llama/llama-3.3-70b-instruct', 'nvidia/deepseek-v4-pro'],
+      models: ['agentrouter/claude-opus-4-8', 'agentrouter/claude-opus-5', 'agentrouter/gpt-5.6-sol', 'google/gemini-2.0-flash-001', 'meta-llama/llama-3.3-70b-instruct', 'nvidia/deepseek-v4-flash'],
       vision: true,
       fileUpload: true,
       priority: false,
@@ -76,6 +76,7 @@ export const PLANS: Plan[] = [
       '200 chat per hari',
       'Semua model AI premium',
       'Claude Opus 4.8, Opus 5, GPT-5.6 Sol',
+      'DeepSeek V4 Flash (Thinking) & V4 Pro',
       'Analisis gambar (Vision AI)',
       'Upload & analisis semua jenis file',
       'Priority response',
@@ -84,7 +85,7 @@ export const PLANS: Plan[] = [
     ],
     limits: {
       dailyMessages: 200,
-      models: ['agentrouter/claude-opus-4-8', 'agentrouter/claude-opus-5', 'agentrouter/gpt-5.6-sol', 'google/gemini-2.0-flash-001', 'meta-llama/llama-3.3-70b-instruct', 'nvidia/deepseek-v4-pro'],
+      models: ['agentrouter/claude-opus-4-8', 'agentrouter/claude-opus-5', 'agentrouter/gpt-5.6-sol', 'google/gemini-2.0-flash-001', 'meta-llama/llama-3.3-70b-instruct', 'nvidia/deepseek-v4-flash'],
       vision: true,
       fileUpload: true,
       priority: true,
@@ -100,9 +101,13 @@ export function formatPrice(price: number): string {
   return `$${price.toFixed(2)}`
 }
 
-// Model yang butuh plan berbayar (kosong — semua AgentRouter models sudah free via key sendiri)
-export const PAID_MODELS: string[] = []
+// Model yang butuh plan berbayar — AgentRouter premium models
+export const PAID_MODELS: string[] = [
+  'agentrouter/claude-opus-5',
+  'agentrouter/gpt-5.6-sol',
+]
 
-export function modelRequiresPlan(_modelId: string): PlanId | null {
+export function modelRequiresPlan(modelId: string): PlanId | null {
+  if (PAID_MODELS.includes(modelId)) return 'mini'
   return null
 }

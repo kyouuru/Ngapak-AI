@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, Zap, Brain, Cpu, Flame, Lock } from 'lucide-react'
+import { ChevronDown, Zap, Brain, Cpu, Flame, Lock, Crown } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { PAID_MODELS } from '@/lib/plans'
@@ -13,6 +13,7 @@ interface ModelSelectorProps {
 }
 
 const MODELS = [
+  // ── Free model ──────────────────────────────────────────────
   {
     id: 'agentrouter/claude-opus-4-8',
     name: 'Claude Opus 4.8',
@@ -22,13 +23,14 @@ const MODELS = [
     badgeColor: 'text-emerald-600 bg-emerald-400/10 border-emerald-400/20',
     provider: 'agentrouter',
   },
+  // ── Pro models (AgentRouter) ─────────────────────────────────
   {
     id: 'agentrouter/claude-opus-5',
     name: 'Claude Opus 5',
     desc: 'AgentRouter · Model terbaru Anthropic',
     icon: Brain,
-    badge: 'AgentRouter',
-    badgeColor: 'text-violet-500 bg-violet-400/10 border-violet-400/20',
+    badge: 'Pro',
+    badgeColor: 'text-amber-500 bg-amber-400/10 border-amber-400/20',
     provider: 'agentrouter',
   },
   {
@@ -36,10 +38,11 @@ const MODELS = [
     name: 'GPT-5.6 Sol',
     desc: 'AgentRouter · OpenAI terkini',
     icon: Flame,
-    badge: 'AgentRouter',
-    badgeColor: 'text-blue-500 bg-blue-400/10 border-blue-400/20',
+    badge: 'Pro',
+    badgeColor: 'text-amber-500 bg-amber-400/10 border-amber-400/20',
     provider: 'agentrouter',
   },
+  // ── Free NVIDIA / OpenRouter models ─────────────────────────
   {
     id: 'google/gemini-2.0-flash-001',
     name: 'Gemini 2.0 Flash',
@@ -52,19 +55,19 @@ const MODELS = [
   {
     id: 'meta-llama/llama-3.3-70b-instruct',
     name: 'Llama 3.3 70B',
-    desc: 'NVIDIA · Open source Meta',
+    desc: 'NVIDIA Nemotron · Open source, powerful',
     icon: Cpu,
     badge: 'Free',
     badgeColor: 'text-emerald-500 bg-emerald-400/10 border-emerald-400/20',
     provider: 'nvidia',
   },
   {
-    id: 'nvidia/deepseek-v4-pro',
-    name: 'DeepSeek V4 Pro',
-    desc: 'NVIDIA NIM · Reasoning kuat',
+    id: 'nvidia/deepseek-v4-flash',
+    name: 'DeepSeek V4 Flash',
+    desc: 'NVIDIA NIM · Thinking + reasoning tinggi',
     icon: Zap,
-    badge: 'NVIDIA',
-    badgeColor: 'text-green-500 bg-green-400/10 border-green-400/20',
+    badge: 'Thinking ✨',
+    badgeColor: 'text-purple-500 bg-purple-400/10 border-purple-400/20',
     provider: 'nvidia',
   },
 ]
@@ -142,14 +145,14 @@ export function ModelSelector({ value, onChange, userPlan = 'free', onPaidModelC
                     <MIcon size={14} className={isActive ? 'text-[#b5502e]' : 'text-[#8a6b52]'} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className={cn('text-sm font-medium', isActive ? 'text-[#b5502e]' : 'text-[#241711]')}>
                         {model.name}
                       </span>
                       <span className={cn('text-[10px] px-1.5 py-0.5 rounded-md border font-medium', model.badgeColor)}>
                         {model.badge}
                       </span>
-                      {isLocked && <Lock size={10} className="text-amber-500" />}
+                      {isLocked && <Crown size={10} className="text-amber-500" />}
                     </div>
                     <p className="text-[11px] text-[#8a6b52] mt-0.5">{model.desc}</p>
                   </div>

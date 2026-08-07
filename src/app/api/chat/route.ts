@@ -23,39 +23,40 @@ interface ModelConfig {
 }
 
 export const MODEL_MAP: Record<string, ModelConfig> = {
-  // AgentRouter models — primary, no agentrouter fallback
+  // AgentRouter models — primary, fallback ke OpenRouter/NVIDIA jika 401/error
   'agentrouter/claude-opus-4-8': {
     agentrouter: 'claude-opus-4-8',
     openrouter:  'nvidia/nemotron-3-super-120b-a12b:free',
-    nvidia:      'meta/llama-3.3-70b-instruct',
+    nvidia:      'deepseek-ai/deepseek-v4-flash-0731',
     primary:     'agentrouter',
   },
   'agentrouter/claude-opus-5': {
     agentrouter: 'claude-opus-5',
     openrouter:  'nvidia/nemotron-3-super-120b-a12b:free',
-    nvidia:      'meta/llama-3.3-70b-instruct',
+    nvidia:      'deepseek-ai/deepseek-v4-flash-0731',
     primary:     'agentrouter',
   },
   'agentrouter/gpt-5.6-sol': {
     agentrouter: 'gpt-5.6-sol',
-    openrouter:  'openai/gpt-oss-20b:free',
-    nvidia:      'meta/llama-3.3-70b-instruct',
+    openrouter:  'nvidia/nemotron-3-super-120b-a12b:free',
+    nvidia:      'deepseek-ai/deepseek-v4-flash-0731',
     primary:     'agentrouter',
   },
-  // OpenRouter primary models
+  // OpenRouter primary — Gemma 4 26B (free)
   'google/gemini-2.0-flash-001': {
     openrouter:  'google/gemma-4-26b-a4b-it:free',
-    nvidia:      'meta/llama-3.3-70b-instruct',
+    nvidia:      'nvidia/llama-3.3-nemotron-super-49b-v1',
     primary:     'openrouter',
   },
-  // NVIDIA primary models
+  // NVIDIA primary — Nemotron Super 49B (tested OK, replaces timed-out Llama 3.3)
   'meta-llama/llama-3.3-70b-instruct': {
-    nvidia:      'meta/llama-3.3-70b-instruct',
+    nvidia:      'nvidia/llama-3.3-nemotron-super-49b-v1',
     openrouter:  'nvidia/nemotron-3-super-120b-a12b:free',
     primary:     'nvidia',
   },
-  'nvidia/deepseek-v4-pro': {
-    nvidia:      'meta/llama-3.3-70b-instruct',
+  // DeepSeek V4 Flash 0731 via NVIDIA — thinking model (tested OK)
+  'nvidia/deepseek-v4-flash': {
+    nvidia:      'deepseek-ai/deepseek-v4-flash-0731',
     openrouter:  'nvidia/nemotron-3-super-120b-a12b:free',
     primary:     'nvidia',
   },
@@ -162,8 +163,9 @@ async function callProvider(
   }
 
   // All providers use OpenAI-compatible /chat/completions format
-  const body = isNvidia ? flatMsgs : flatMsgs
-  const timeoutMs = provider === 'nvidia' ? 30_000 : 25_000
+  const body = flatMsgs
+  const isDeepSeekFlash = provider === 'nvidia' && modelId === 'deepseek-ai/deepseek-v4-flash-0731'
+  const timeoutMs = provider === 'nvidia' ? 60_000 : 25_000
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
 
@@ -175,7 +177,10 @@ async function callProvider(
       body: JSON.stringify({
         model: modelId,
         stream: true,
-        max_tokens: isNvidia ? 4096 : 8096,
+        max_tokens: isDeepSeekFlash ? 16384 : (isNvidia ? 4096 : 8096),
+        temperature: isDeepSeekFlash ? 1 : 0.7,
+        top_p: isDeepSeekFlash ? 0.95 : 1,
+        ...(isDeepSeekFlash ? { chat_template_kwargs: { thinking: true, reasoning_effort: 'high' } } : {}),
         messages: [{ role: 'system', content: systemPrompt }, ...body],
       }),
     })
@@ -189,25 +194,40 @@ interface Keys {
   agentrouter?: string
   openrouter?:  string
   nvidia?:      string
+  nvidia2?:     string
+  nvidia3?:     string
 }
 
 function buildAttempts(config: ModelConfig, keys: Keys) {
   type Attempt = { provider: Provider; modelId: string; key: string }
   const all: Attempt[] = []
 
-  // Helper: push if we have both a model ID and a key for that provider
-  const maybe = (p: Provider, modelId: string | undefined) => {
-    const key = keys[p]
+  const maybe = (p: Provider, modelId: string | undefined, key?: string) => {
     if (modelId && key) all.push({ provider: p, modelId, key })
   }
 
   // Primary first
-  maybe(config.primary, config[config.primary])
+  maybe(config.primary, config[config.primary], keys[config.primary])
 
-  // Fallback order: nvidia first (active), then openrouter, then agentrouter
+  // Fallback: nvidia2 key (second NVIDIA key) before other providers
+  if (config.nvidia && keys.nvidia2 && config.primary !== 'nvidia') {
+    all.push({ provider: 'nvidia', modelId: config.nvidia, key: keys.nvidia2 })
+  }
+  // Fallback: nvidia3 key (third NVIDIA key) — for DeepSeek V4 Pro
+  if (config.nvidia && keys.nvidia3 && config.primary !== 'nvidia') {
+    all.push({ provider: 'nvidia', modelId: config.nvidia, key: keys.nvidia3 })
+  }
+
+  // Then the other providers
   const fallbackOrder: Provider[] = ['nvidia', 'agentrouter', 'openrouter']
   for (const p of fallbackOrder) {
-    if (p !== config.primary) maybe(p, config[p])
+    if (p !== config.primary) maybe(p, config[p], keys[p])
+  }
+
+  // If nvidia already added via primary, also try nvidia2 & nvidia3 as extra fallback
+  if (config.primary === 'nvidia' && config.nvidia) {
+    if (keys.nvidia2) all.push({ provider: 'nvidia', modelId: config.nvidia, key: keys.nvidia2 })
+    if (keys.nvidia3) all.push({ provider: 'nvidia', modelId: config.nvidia, key: keys.nvidia3 })
   }
 
   return all
@@ -222,13 +242,18 @@ async function callWithFallback(
   const config = MODEL_MAP[requestedModelKey] ?? MODEL_MAP[DEFAULT_MODEL]!
   const attempts = buildAttempts(config, keys)
 
-  // Last resort: any key with the default model
+  // Last resort: try nvidia with both keys, then other providers
   if (attempts.length === 0) {
     const def = MODEL_MAP[DEFAULT_MODEL]!
-    const allProviders: Provider[] = ['agentrouter', 'openrouter', 'nvidia']
-    for (const p of allProviders) {
-      const key = keys[p], modelId = def[p]
-      if (key && modelId) { attempts.push({ provider: p, modelId, key }); break }
+    const tryKeys: [Provider, string | undefined][] = [
+      ['nvidia', keys.nvidia],
+      ['nvidia', keys.nvidia2],
+      ['openrouter', keys.openrouter],
+      ['agentrouter', keys.agentrouter],
+    ]
+    for (const [p, k] of tryKeys) {
+      const modelId = def[p]
+      if (k && modelId) { attempts.push({ provider: p, modelId, key: k }); break }
     }
   }
   if (attempts.length === 0) throw new Error('No API keys configured')
@@ -391,6 +416,8 @@ export async function POST(req: NextRequest) {
       agentrouter: process.env.AGENTROUTER_API_KEY,
       openrouter:  process.env.OPENROUTER_API_KEY,
       nvidia:      process.env.NVIDIA_API_KEY,
+      nvidia2:     process.env.NVIDIA_API_KEY_2,
+      nvidia3:     process.env.NVIDIA_API_KEY_3,
     }
     if (!keys.agentrouter && !keys.openrouter && !keys.nvidia) {
       return new Response(JSON.stringify({ error: 'No API keys configured' }),
