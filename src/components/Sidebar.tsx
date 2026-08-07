@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import {
   Plus, MessageSquare, Trash2, X,
   PanelLeftClose, PanelLeftOpen,
@@ -48,16 +47,14 @@ function groupSessions(sessions: ChatSession[]) {
   return { today, yesterday, week, older }
 }
 
-/** Logo: bare image, no container */
+/** Logo: natural size, no container */
 function Logo({ size }: { size: number }) {
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src="/logo.png"
       alt="Ngapak AI"
-      width={size}
-      height={size}
-      style={{ width: size, height: size, flexShrink: 0 }}
-      priority
+      style={{ height: size, width: 'auto', flexShrink: 0 }}
     />
   )
 }

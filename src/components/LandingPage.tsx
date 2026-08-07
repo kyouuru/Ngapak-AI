@@ -3,7 +3,6 @@
 import { useEffect, useState, type CSSProperties } from 'react'
 import { useSession, signIn } from 'next-auth/react'
 import dynamic from 'next/dynamic'
-import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowRight,
@@ -615,7 +614,8 @@ function MiniChat() {
     <div className="ink-outline rotate-[-2.5deg] rounded-[2rem_1.1rem_2.4rem_1.4rem] bg-[#fff4dc] p-5 text-[#241711]">
       <div className="flex items-center justify-between border-b border-[#4a2d1c]/15 pb-3">
         <div className="flex items-center gap-2">
-          <Image src="/logo.png" alt="Ngapak AI chat icon" width={36} height={36} style={{ width: 36, height: 36 }} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="Ngapak AI chat icon" style={{ height: 64, width: 'auto' }} />
           <div>
             <p className="text-sm font-semibold text-[#241711]">Ngapak AI</p>
             <p className="text-xs text-[#8a6b52]">Powered by Claude</p>
@@ -765,9 +765,13 @@ export function LandingPage() {
 
       <header className={cn('fixed inset-x-0 top-0 z-40 transition duration-300', scrolled ? 'border-b border-[#4a2d1c]/15 bg-[#f4e6ca]/86 backdrop-blur-xl' : 'bg-transparent')}>
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2.5 focus:outline-none focus:ring-2 focus:ring-[#b5502e]/40 rounded-xl">
-            <Image src="/logo.png" alt="Ngapak AI logo" width={44} height={44} style={{ width: 44, height: 44 }} priority />
-            <span className="font-display text-base font-semibold tracking-wide">Ngapak AI</span>
+          <Link href="/" className="flex items-center focus:outline-none focus:ring-2 focus:ring-[#b5502e]/40 rounded-xl" style={{ gap: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Ngapak AI logo" style={{ height: 80, width: 'auto' }} />
+            <span className="font-display text-xl font-bold tracking-wide uppercase" style={{ marginLeft: -36 }}>
+              <span style={{ color: '#b5502e' }}>NGAPAK</span>
+              <span style={{ color: '#241711' }}> AI</span>
+            </span>
           </Link>
 
           <nav className="hidden items-center gap-7 rounded-full border border-[#4a2d1c]/15 bg-[#fff4dc]/62 px-5 py-2 text-sm text-[#60412f] backdrop-blur-xl md:flex">
@@ -1081,7 +1085,8 @@ export function LandingPage() {
       <footer className="relative z-10 border-t border-[#4a2d1c]/10 bg-[#d9c9a8] px-4 py-10 sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <Image src="/logo.png" alt="Ngapak AI logo" width={40} height={40} style={{ width: 40, height: 40 }} />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Ngapak AI logo" style={{ height: 72, width: 'auto' }} />
             <div>
               <p className="font-semibold text-[#241711]">Ngapak AI</p>
               <p className="text-xs text-[#8a6b52]">Asisten AI Indonesia dengan crypto checkout.</p>

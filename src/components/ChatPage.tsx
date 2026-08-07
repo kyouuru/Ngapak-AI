@@ -580,14 +580,11 @@ export function ChatPage() {
                 <div className="text-center mb-8 mt-4">
                   {/* Logo above greeting */}
                   <div className="flex justify-center mb-5">
-                    <Image
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
                       src="/logo.png"
                       alt="Ngapak AI"
-                      width={160}
-                      height={160}
-                      className="object-contain"
-                      style={{ width: 160, height: 160, filter: 'drop-shadow(0 0 24px rgba(217,119,87,0.5))' }}
-                      priority
+                      style={{ height: 120, width: 'auto', filter: 'drop-shadow(0 0 24px rgba(217,119,87,0.5))' }}
                     />
                   </div>
                   <h1 className="font-display text-[2rem] sm:text-[2.4rem] leading-tight text-[#241711] tracking-tight mb-2">
