@@ -293,7 +293,7 @@ export function ChatPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [model, setModel] = useState('deepseek/deepseek-chat-v3-0324:free')
   const [skillId, setSkillId] = useState('general')
-  const [langId, setLangId] = useState('id')
+  const [langId, setLangId] = useState('ngapak')
   const [limitUsed, setLimitUsed] = useState(0)
   const [showLimitModal, setShowLimitModal] = useState(false)
   const [webSearch, setWebSearch] = useState(false)
@@ -492,9 +492,12 @@ export function ChatPage() {
   const greetingLine = langId === 'ngapak'
     ? 'Piye kabare?' : langId === 'jawa'
     ? 'Sugeng rawuh!' : langId === 'sunda'
-    ? 'Wilujeng sumping!' : langId === 'english'
+    ? 'Wilujeng sumping!' : langId === 'minang'
+    ? 'Apo nan bisa ambo bantu?' : langId === 'betawi'
+    ? 'Aye bisa bantu apa nih?' : langId === 'madura'
+    ? 'Aapa se bisa kaula bantu?' : langId === 'english'
     ? 'What can I help with?'
-    : 'Ana sing bisa tak bejang?'
+    : 'Ada yang bisa aku bantu?'
 
   const greetingUser = isLoggedIn && session?.user?.name
     ? `, ${session.user.name.split(' ')[0]}` : ''
@@ -571,7 +574,7 @@ export function ChatPage() {
                       alt="Ngapak AI"
                       width={160}
                       height={160}
-                      className="object-contain"
+                      className="object-contain w-40 h-40"
                       style={{ filter: 'drop-shadow(0 0 24px rgba(217,119,87,0.5))' }}
                       priority
                     />

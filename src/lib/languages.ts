@@ -29,7 +29,7 @@ Boleh sesekali tambahkan "ya", "nih", "dong" agar terasa hangat.`,
   {
     id: 'ngapak',
     name: 'Ngapak',
-    flag: '🗺️',
+    flag: '🇮🇩',
     greeting: 'Halo kowe!',
     uiLabel: { you: 'Kowe', ai: 'Ngapak AI', placeholder: 'Takon apa bae karo Ngapak AI...', footer: 'Ngapak AI bisa gawe kesalahan. Priksa informasi penting ya!' },
     systemAddendum: `
@@ -41,7 +41,7 @@ Contoh sapaan: "Halo kowe! Inyong siap mbantu ya!"`,
   {
     id: 'sunda',
     name: 'Sunda',
-    flag: '🌺',
+    flag: '🇮🇩',
     greeting: 'Halo!',
     uiLabel: { you: 'Anjeun', ai: 'Ngapak AI', placeholder: 'Tulis pesen anjeun...', footer: 'Ngapak AI tiasa lepat. Pariksa inpormasi penting nya!' },
     systemAddendum: `
@@ -53,7 +53,7 @@ Conto: "Halo! Abdi siap ngabantosan anjeun nya!"`,
   {
     id: 'minang',
     name: 'Minang',
-    flag: '🏔️',
+    flag: '🇮🇩',
     greeting: 'Halo!',
     uiLabel: { you: 'Waang', ai: 'Ngapak AI', placeholder: 'Tulih pesan waang...', footer: 'Ngapak AI bisa salah. Pareso informasi nan pantiang yo!' },
     systemAddendum: `
@@ -65,7 +65,7 @@ Conto: "Halo! Ambo siap mambantu waang yo!"`,
   {
     id: 'jawa',
     name: 'Jawa',
-    flag: '🏛️',
+    flag: '🇮🇩',
     greeting: 'Sugeng rawuh!',
     uiLabel: { you: 'Sampeyan', ai: 'Ngapak AI', placeholder: 'Tulis pesen sampeyan...', footer: 'Ngapak AI saged lepat. Priksa informasi penting nggih!' },
     systemAddendum: `
@@ -77,7 +77,7 @@ Conto: "Sugeng rawuh! Kula siap mbantu sampeyan nggih!"`,
   {
     id: 'betawi',
     name: 'Betawi',
-    flag: '🦁',
+    flag: '🇮🇩',
     greeting: 'Halo nih!',
     uiLabel: { you: 'Ente', ai: 'Ngapak AI', placeholder: 'Tulis pesan ente...', footer: 'Ngapak AI bisa salah nih. Cek informasi penting deh!' },
     systemAddendum: `
@@ -89,7 +89,7 @@ Contoh: "Halo nih! Aye siap bantu ente deh!"`,
   {
     id: 'madura',
     name: 'Madura',
-    flag: '🐂',
+    flag: '🇮🇩',
     greeting: 'Halo!',
     uiLabel: { you: "Ba'na", ai: 'Ngapak AI', placeholder: "Tullis pesan ba'na...", footer: "Ngapak AI bisa salah. Pareksa informasi se penting ya!" },
     systemAddendum: `

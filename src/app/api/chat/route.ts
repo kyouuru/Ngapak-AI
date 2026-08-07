@@ -7,56 +7,67 @@ import { checkLimit, incrementUsage } from '@/lib/rateLimit'
 export const runtime = 'nodejs'
 
 /* ─── Provider base URLs ─────────────────────────────────── */
-const OPENROUTER_BASE = 'https://openrouter.ai/api/v1'
-const NVIDIA_BASE     = 'https://integrate.api.nvidia.com/v1'
+const AGENTROUTER_BASE = 'https://agentrouter.org/v1'
+const OPENROUTER_BASE  = 'https://openrouter.ai/api/v1'
+const NVIDIA_BASE      = 'https://integrate.api.nvidia.com/v1'
+
+export type Provider = 'agentrouter' | 'openrouter' | 'nvidia'
 
 /* ─── Model registry ─────────────────────────────────────── */
-// Maps frontend model IDs → per-provider model IDs + preferred provider
-export type Provider = 'openrouter' | 'nvidia'
-
+// Each frontend model ID maps to per-provider IDs + preferred provider order
 interface ModelConfig {
-  openrouter?: string   // model id on OpenRouter
-  nvidia?: string       // model id on NVIDIA NIM
-  primary: Provider     // which provider to try first
+  agentrouter?: string  // model id on AgentRouter
+  openrouter?:  string  // model id on OpenRouter
+  nvidia?:      string  // model id on NVIDIA NIM
+  primary:      Provider
 }
 
 export const MODEL_MAP: Record<string, ModelConfig> = {
-  // ── Free models (OpenRouter primary, NVIDIA fallback) ──
+  // ── Default free model — NVIDIA DeepSeek V4 Pro primary, others fallback ──
   'deepseek/deepseek-chat-v3-0324:free': {
-    openrouter: 'deepseek/deepseek-chat-v3-0324:free',
-    nvidia:     'deepseek-ai/deepseek-r1',
-    primary:    'openrouter',
+    nvidia:      'deepseek-ai/deepseek-v4-pro',      // V4 Pro on NVIDIA NIM (1.6T MoE)
+    agentrouter: 'deepseek-v3',
+    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
+    primary:     'nvidia',
   },
   'google/gemini-2.0-flash-001': {
-    openrouter: 'google/gemini-2.0-flash-001',
-    // No direct Gemini on NVIDIA; fallback to Llama
-    nvidia:     'meta/llama-3.1-70b-instruct',
-    primary:    'openrouter',
+    openrouter:  'google/gemini-2.0-flash-001',
+    nvidia:      'deepseek-ai/deepseek-v4-pro',
+    agentrouter: 'deepseek-v3',
+    primary:     'openrouter',
   },
   'meta-llama/llama-3.3-70b-instruct': {
-    openrouter: 'meta-llama/llama-3.3-70b-instruct',
-    nvidia:     'meta/llama-3.3-70b-instruct',
-    primary:    'openrouter',
+    openrouter:  'meta-llama/llama-3.3-70b-instruct',
+    nvidia:      'meta/llama-3.3-70b-instruct',
+    agentrouter: 'deepseek-v3',
+    primary:     'openrouter',
   },
-  // ── NVIDIA-primary models (fast inference on NVIDIA GPUs) ──
+  // ── NVIDIA DeepSeek V4 Pro (direct) ──
+  'nvidia/deepseek-v4-pro': {
+    nvidia:      'deepseek-ai/deepseek-v4-pro',
+    agentrouter: 'deepseek-v3',
+    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
+    primary:     'nvidia',
+  },
+  // ── NVIDIA Nemotron ──
   'nvidia/llama-3.1-nemotron-70b-instruct': {
-    nvidia:     'nvidia/llama-3.1-nemotron-70b-instruct',
-    openrouter: 'meta-llama/llama-3.1-70b-instruct',
-    primary:    'nvidia',
+    nvidia:      'nvidia/llama-3.1-nemotron-70b-instruct',
+    openrouter:  'meta-llama/llama-3.1-70b-instruct',
+    agentrouter: 'deepseek-v3',
+    primary:     'nvidia',
   },
-  'nvidia/mistral-nemo-minitron-8b': {
-    nvidia:     'nvidia/mistral-nemo-minitron-8b-8k-instruct',
-    openrouter: 'mistralai/mistral-7b-instruct',
-    primary:    'nvidia',
-  },
-  // ── Paid models (OpenRouter only) ──
+  // ── AgentRouter-primary paid models (Claude etc.) ──
   'anthropic/claude-3.5-haiku': {
-    openrouter: 'anthropic/claude-3.5-haiku',
-    primary:    'openrouter',
+    agentrouter: 'claude-haiku-4-5-20251001',
+    openrouter:  'anthropic/claude-3.5-haiku',
+    nvidia:      'deepseek-ai/deepseek-v4-pro',
+    primary:     'agentrouter',
   },
   'anthropic/claude-3.5-sonnet': {
-    openrouter: 'anthropic/claude-3.5-sonnet',
-    primary:    'openrouter',
+    agentrouter: 'claude-opus-4-6',
+    openrouter:  'anthropic/claude-3.5-sonnet',
+    nvidia:      'deepseek-ai/deepseek-v4-pro',
+    primary:     'agentrouter',
   },
 }
 
@@ -89,38 +100,9 @@ const BASE_SYSTEM_PROMPT = `Kamu adalah Ngapak AI, asisten AI yang pintar, ramah
 - Untuk kode: selalu gunakan code block dengan bahasa yang tepat
 - Untuk penjelasan panjang: gunakan heading dan bullet points`
 
-/* ─── Provider call functions ────────────────────────────── */
-async function callOpenRouter(
-  apiKey: string,
-  modelId: string,
-  systemPrompt: string,
-  messages: { role: string; content: unknown }[],
-): Promise<Response> {
-  return fetch(`${OPENROUTER_BASE}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://ngapak-ai.vercel.app',
-      'X-Title': 'Ngapak AI',
-    },
-    body: JSON.stringify({
-      model: modelId,
-      stream: true,
-      max_tokens: 8096,
-      messages: [{ role: 'system', content: systemPrompt }, ...messages],
-    }),
-  })
-}
-
-async function callNvidia(
-  apiKey: string,
-  modelId: string,
-  systemPrompt: string,
-  messages: { role: string; content: unknown }[],
-): Promise<Response> {
-  // NVIDIA NIM is OpenAI-compatible — strip image content blocks (not all models support vision)
-  const textMessages = messages.map((m) => ({
+/* ─── Flatten messages to text (for providers that don't support vision blocks) ── */
+function flattenMessages(messages: { role: string; content: unknown }[]) {
+  return messages.map((m) => ({
     role: m.role,
     content: typeof m.content === 'string'
       ? m.content
@@ -131,81 +113,112 @@ async function callNvidia(
             .join('\n')
         : String(m.content),
   }))
+}
 
-  return fetch(`${NVIDIA_BASE}/chat/completions`, {
+/* ─── Provider call functions ────────────────────────────── */
+async function callProvider(
+  provider: Provider,
+  apiKey: string,
+  modelId: string,
+  systemPrompt: string,
+  messages: { role: string; content: unknown }[],
+): Promise<Response> {
+  const isNvidia = provider === 'nvidia'
+  const baseUrl = provider === 'agentrouter'
+    ? AGENTROUTER_BASE
+    : provider === 'openrouter'
+    ? OPENROUTER_BASE
+    : NVIDIA_BASE
+
+  // NVIDIA and AgentRouter don't support image content blocks
+  const body = isNvidia || provider === 'agentrouter'
+    ? flattenMessages(messages)
+    : messages.map((m) => ({ role: m.role, content: m.content }))
+
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${apiKey}`,
+    'Content-Type': 'application/json',
+  }
+  // OpenRouter wants referer for rate-limit tiers
+  if (provider === 'openrouter') {
+    headers['HTTP-Referer'] = 'https://ngapak-ai.vercel.app'
+    headers['X-Title'] = 'Ngapak AI'
+  }
+
+  return fetch(`${baseUrl}/chat/completions`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({
       model: modelId,
       stream: true,
-      max_tokens: 4096,
-      messages: [{ role: 'system', content: systemPrompt }, ...textMessages],
+      max_tokens: isNvidia ? 4096 : 8096,
+      messages: [{ role: 'system', content: systemPrompt }, ...body],
     }),
   })
 }
 
 /* ─── Fallback orchestration ─────────────────────────────── */
+interface Keys {
+  agentrouter?: string
+  openrouter?:  string
+  nvidia?:      string
+}
+
+function buildAttempts(config: ModelConfig, keys: Keys) {
+  type Attempt = { provider: Provider; modelId: string; key: string }
+  const all: Attempt[] = []
+
+  // Helper: push if we have both a model ID and a key for that provider
+  const maybe = (p: Provider, modelId: string | undefined) => {
+    const key = keys[p]
+    if (modelId && key) all.push({ provider: p, modelId, key })
+  }
+
+  // Primary first
+  maybe(config.primary, config[config.primary])
+
+  // Then the other two in a fixed fallback order: agentrouter → openrouter → nvidia
+  const fallbackOrder: Provider[] = ['agentrouter', 'openrouter', 'nvidia']
+  for (const p of fallbackOrder) {
+    if (p !== config.primary) maybe(p, config[p])
+  }
+
+  return all
+}
+
 async function callWithFallback(
   requestedModelKey: string,
   systemPrompt: string,
   messages: { role: string; content: unknown }[],
-  openrouterKey?: string,
-  nvidiaKey?: string,
+  keys: Keys,
 ): Promise<{ response: Response; usedProvider: Provider }> {
   const config = MODEL_MAP[requestedModelKey] ?? MODEL_MAP[DEFAULT_MODEL]!
-  const primary = config.primary
+  const attempts = buildAttempts(config, keys)
 
-  // Build ordered list of attempts: [primary, fallback]
-  type Attempt = { provider: Provider; modelId: string }
-  const attempts: Attempt[] = []
-
-  if (primary === 'openrouter' && config.openrouter && openrouterKey) {
-    attempts.push({ provider: 'openrouter', modelId: config.openrouter })
-  }
-  if (primary === 'nvidia' && config.nvidia && nvidiaKey) {
-    attempts.push({ provider: 'nvidia', modelId: config.nvidia })
-  }
-  // Fallback: the other provider
-  if (primary === 'openrouter' && config.nvidia && nvidiaKey) {
-    attempts.push({ provider: 'nvidia', modelId: config.nvidia })
-  }
-  if (primary === 'nvidia' && config.openrouter && openrouterKey) {
-    attempts.push({ provider: 'openrouter', modelId: config.openrouter })
-  }
-  // Last resort: default model on any available provider
+  // Last resort: any key with the default model
   if (attempts.length === 0) {
     const def = MODEL_MAP[DEFAULT_MODEL]!
-    if (openrouterKey && def.openrouter)
-      attempts.push({ provider: 'openrouter', modelId: def.openrouter })
-    else if (nvidiaKey && def.nvidia)
-      attempts.push({ provider: 'nvidia', modelId: def.nvidia })
+    const allProviders: Provider[] = ['agentrouter', 'openrouter', 'nvidia']
+    for (const p of allProviders) {
+      const key = keys[p], modelId = def[p]
+      if (key && modelId) { attempts.push({ provider: p, modelId, key }); break }
+    }
   }
-
-  if (attempts.length === 0) {
-    throw new Error('No API keys configured')
-  }
+  if (attempts.length === 0) throw new Error('No API keys configured')
 
   let lastResponse: Response | null = null
-  for (const attempt of attempts) {
+  for (const { provider, modelId, key } of attempts) {
     try {
-      console.log(`[chat] trying ${attempt.provider} → ${attempt.modelId}`)
-      const res = attempt.provider === 'openrouter'
-        ? await callOpenRouter(openrouterKey!, attempt.modelId, systemPrompt, messages)
-        : await callNvidia(nvidiaKey!, attempt.modelId, systemPrompt, messages)
-
-      if (res.ok) return { response: res, usedProvider: attempt.provider }
-
-      console.warn(`[chat] ${attempt.provider} returned ${res.status}, trying next…`)
+      console.log(`[chat] trying ${provider} → ${modelId}`)
+      const res = await callProvider(provider, key, modelId, systemPrompt, messages)
+      if (res.ok) return { response: res, usedProvider: provider }
+      console.warn(`[chat] ${provider} returned ${res.status}, trying next…`)
       lastResponse = res
     } catch (err) {
-      console.warn(`[chat] ${attempt.provider} threw error:`, err)
+      console.warn(`[chat] ${provider} threw:`, (err as Error).message)
     }
   }
 
-  // All attempts failed — return the last error response
   return {
     response: lastResponse ?? new Response('{}', { status: 500 }),
     usedProvider: attempts[0]!.provider,
@@ -220,44 +233,36 @@ function forwardSSEStream(upstream: Response): ReadableStream<Uint8Array> {
       const reader = upstream.body?.getReader()
       const decoder = new TextDecoder()
       if (!reader) { controller.close(); return }
-
       let buffer = ''
       try {
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
-
           buffer += decoder.decode(value, { stream: true })
           const lines = buffer.split('\n')
           buffer = lines.pop() ?? ''
-
           for (const line of lines) {
             const trimmed = line.trim()
             if (!trimmed || !trimmed.startsWith('data: ')) continue
             const data = trimmed.slice(6).trim()
-            if (data === '[DONE]') {
-              controller.enqueue(encoder.encode('data: [DONE]\n\n'))
-              return
-            }
+            if (data === '[DONE]') { controller.enqueue(encoder.encode('data: [DONE]\n\n')); return }
             try {
               const parsed = JSON.parse(data)
               const text = parsed?.choices?.[0]?.delta?.content
-              if (typeof text === 'string' && text.length > 0) {
+              if (typeof text === 'string' && text.length > 0)
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
-              }
             } catch {}
           }
         }
-        // flush remaining buffer
+        // flush remaining
         if (buffer.trim().startsWith('data: ')) {
           const data = buffer.trim().slice(6).trim()
           if (data && data !== '[DONE]') {
             try {
               const parsed = JSON.parse(data)
               const text = parsed?.choices?.[0]?.delta?.content
-              if (typeof text === 'string' && text.length > 0) {
+              if (typeof text === 'string' && text.length > 0)
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
-              }
             } catch {}
           }
         }
@@ -276,13 +281,10 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth()
     const isLoggedIn = !!session?.user
-
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-      ?? req.headers.get('x-real-ip')
-      ?? 'unknown'
+      ?? req.headers.get('x-real-ip') ?? 'unknown'
     const limitKey = isLoggedIn
-      ? `user:${session!.user!.id ?? session!.user!.email}`
-      : `ip:${ip}`
+      ? `user:${session!.user!.id ?? session!.user!.email}` : `ip:${ip}`
 
     const limitCheck = checkLimit(limitKey, isLoggedIn)
     if (!limitCheck.allowed) {
@@ -292,68 +294,57 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const {
-      messages,
-      model: requestedModel,
-      skillId = 'general',
-      langId = 'id',
-      webSearch = false,
-    } = await req.json()
-
+    const { messages, model: requestedModel, skillId = 'general', langId = 'id', webSearch = false } = await req.json()
     if (!messages || !Array.isArray(messages)) {
-      return new Response(JSON.stringify({ error: 'Messages are required' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' },
-      })
+      return new Response(JSON.stringify({ error: 'Messages are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } })
     }
 
-    const openrouterKey = process.env.OPENROUTER_API_KEY
-    const nvidiaKey     = process.env.NVIDIA_API_KEY
-
-    if (!openrouterKey && !nvidiaKey) {
-      return new Response(JSON.stringify({ error: 'No API keys configured' }), {
-        status: 500, headers: { 'Content-Type': 'application/json' },
-      })
+    const keys: Keys = {
+      agentrouter: process.env.AGENTROUTER_API_KEY,
+      openrouter:  process.env.OPENROUTER_API_KEY,
+      nvidia:      process.env.NVIDIA_API_KEY,
+    }
+    if (!keys.agentrouter && !keys.openrouter && !keys.nvidia) {
+      return new Response(JSON.stringify({ error: 'No API keys configured' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } })
     }
 
     incrementUsage(limitKey)
 
-    const skill = getSkillById(skillId)
+    const skill    = getSkillById(skillId)
     const language = getLanguageById(langId)
-    const webNote = webSearch
-      ? '\n\n## WEB SEARCH MODE\nUser mengaktifkan web search. Kamu tidak bisa browsing, tapi berikan jawaban terbaik dan sarankan user verifikasi ke sumber terpercaya.'
+    const webNote  = webSearch
+      ? '\n\n## WEB SEARCH MODE\nKamu tidak bisa browsing, tapi berikan jawaban terbaik dan sarankan user verifikasi ke sumber terpercaya.'
       : ''
     const systemPrompt = BASE_SYSTEM_PROMPT + language.systemAddendum + (skill.systemPromptAddendum || '') + webNote
 
-    const modelKey = requestedModel ?? DEFAULT_MODEL
-
     const { response, usedProvider } = await callWithFallback(
-      modelKey, systemPrompt, messages, openrouterKey, nvidiaKey,
+      requestedModel ?? DEFAULT_MODEL, systemPrompt, messages, keys,
     )
 
     if (!response.ok) {
       const err = await response.text()
-      console.error(`[chat] all providers failed. Last error:`, err)
+      console.error('[chat] all providers failed:', err)
       return new Response(
         JSON.stringify({ error: 'Waduh, ana masalah karo AI-ne. Coba maning!' }),
         { status: response.status, headers: { 'Content-Type': 'application/json' } },
       )
     }
 
-    const stream = forwardSSEStream(response)
-
-    return new Response(stream, {
+    return new Response(forwardSSEStream(response), {
       headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-RateLimit-Limit': String(limitCheck.limit),
+        'Content-Type':        'text/event-stream',
+        'Cache-Control':       'no-cache',
+        'Connection':          'keep-alive',
+        'X-RateLimit-Limit':   String(limitCheck.limit),
         'X-RateLimit-Remaining': String(limitCheck.remaining - 1),
         'X-RateLimit-LoggedIn': String(isLoggedIn),
-        'X-Provider': usedProvider,
+        'X-Provider':          usedProvider,
       },
     })
   } catch (error) {
-    console.error('[chat] unhandled error:', error)
+    console.error('[chat] unhandled:', error)
     return new Response(
       JSON.stringify({ error: 'Waduh, ana masalah. Coba maning ya!' }),
       { status: 500, headers: { 'Content-Type': 'application/json' } },

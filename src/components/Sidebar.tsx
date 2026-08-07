@@ -59,12 +59,8 @@ function Logo({ size }: { size: number }) {
         alt="Ngapak AI"
         width={size}
         height={size}
-        className="object-cover"
-        style={{
-          width: size,
-          height: size,
-          filter: 'drop-shadow(0 0 8px rgba(217,119,87,0.6))',
-        }}
+        className="object-cover w-full h-full"
+        style={{ filter: 'drop-shadow(0 0 8px rgba(217,119,87,0.6))' }}
         priority
       />
     </div>

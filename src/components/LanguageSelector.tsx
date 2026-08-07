@@ -30,13 +30,13 @@ export function LanguageSelector({ value, onChange }: LanguageSelectorProps) {
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all
           bg-[#141310] border border-[#2e2b24] text-[#a09880] hover:text-[#f2ede4] hover:border-[#3a3628]"
       >
-        <span className="text-sm leading-none">{selected.flag}</span>
+        <Languages size={12} className="text-[#d97757]" />
         <span className="hidden sm:inline">{selected.name}</span>
         <ChevronDown size={11} className={cn('transition-transform text-[#625d4e]', open && 'rotate-180')} />
       </button>
 
       {open && (
-        <div className="absolute bottom-full mb-2 right-0 w-56 rounded-2xl border border-[#2e2b24] bg-[#141310] shadow-card z-50 overflow-hidden animate-fade-in">
+        <div className="absolute bottom-full mb-2 right-0 w-48 rounded-2xl border border-[#2e2b24] bg-[#141310] shadow-card z-50 overflow-hidden animate-fade-in">
           <div className="px-3 py-2.5 border-b border-[#221f1a] flex items-center gap-2">
             <Languages size={12} className="text-[#d97757]" />
             <p className="text-[11px] font-medium text-[#625d4e] uppercase tracking-wider">Pilih Bahasa</p>
@@ -49,21 +49,18 @@ export function LanguageSelector({ value, onChange }: LanguageSelectorProps) {
                   key={lang.id}
                   onClick={() => { onChange(lang.id); setOpen(false) }}
                   className={cn(
-                    'w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all text-left',
+                    'w-full flex items-center gap-2 px-3 py-2 rounded-xl transition-all text-left',
                     isActive
                       ? 'bg-[#d97757]/10 border border-[#d97757]/20'
                       : 'hover:bg-white/[0.04] border border-transparent',
                   )}
                 >
-                  <span className="text-lg leading-none flex-shrink-0">{lang.flag}</span>
-                  <div className="flex-1 min-w-0">
-                    <span className={cn(
-                      'text-sm font-medium',
-                      isActive ? 'text-[#f2ede4]' : 'text-[#a09880]',
-                    )}>
-                      {lang.name}
-                    </span>
-                  </div>
+                  <span className={cn(
+                    'text-xs font-medium flex-1',
+                    isActive ? 'text-[#f2ede4]' : 'text-[#a09880]',
+                  )}>
+                    {lang.name}
+                  </span>
                   {isActive && <div className="w-1.5 h-1.5 rounded-full bg-[#d97757] flex-shrink-0" />}
                 </button>
               )
