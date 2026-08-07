@@ -328,8 +328,8 @@ function forwardSSEStream(upstream: Response, provider: Provider): ReadableStrea
               } else {
                 // OpenAI SSE (OpenRouter, NVIDIA)
                 const delta = parsed?.choices?.[0]?.delta
-                // content can be null on first/last chunk — skip
-                text = delta?.content ?? delta?.reasoning_content ?? undefined
+                // Only forward actual content — skip reasoning/thinking tokens
+                text = delta?.content ?? undefined
                 if (text === null || text === undefined) continue
               }
 
@@ -354,7 +354,7 @@ function forwardSSEStream(upstream: Response, provider: Provider): ReadableStrea
                 text = parsed?.delta?.text
               } else {
                 const delta = parsed?.choices?.[0]?.delta
-                text = delta?.content ?? delta?.reasoning_content ?? undefined
+                text = delta?.content ?? undefined
               }
               if (typeof text === 'string' && text.length > 0)
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
