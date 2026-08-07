@@ -465,12 +465,12 @@ function PoweredMarquee() {
           Powered by / terintegrasi dengan model relevan
         </div>
         <div className="marquee-mask space-y-3 overflow-hidden">
-          <div className="marquee-row whitespace-nowrap">
+          <div className="whitespace-nowrap overflow-hidden">
             <div className="marquee-track inline-flex">
               {doubled.map((name, index) => <ProviderPill key={`${name}-${index}`} name={name} />)}
             </div>
           </div>
-          <div className="marquee-row whitespace-nowrap">
+          <div className="whitespace-nowrap overflow-hidden">
             <div className="marquee-track-reverse inline-flex">
               {doubledReverse.map((name, index) => <ProviderPill key={`${name}-reverse-${index}`} name={name} />)}
             </div>
@@ -907,11 +907,56 @@ export function LandingPage() {
 
       <section id="pricing" className="relative z-10 bg-[#eaddc0] px-4 py-20 sm:px-6">
         <SectionBlobs color="#445d3b" color2="#b5502e" count={2} />
+
+        {/* ── Chain marquee FULL WIDTH — di atas grid ── */}
+        <div className="relative mb-12">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.22em] text-[#8a6b52] mb-4">Jaringan yang didukung</p>
+          <div
+            className="overflow-hidden"
+            style={{
+              maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
+            }}
+          >
+            <div className="chain-marquee-track flex items-center" style={{ gap: 12 }}>
+              {[
+                { name: 'Ethereum',  logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png' },
+                { name: 'Base',      logo: 'https://assets.coingecko.com/coins/images/30494/large/base_icon_transparent_background.png' },
+                { name: 'Arbitrum',  logo: 'https://assets.coingecko.com/coins/images/16547/large/photo_2023-03-29_21.47.00.jpeg' },
+                { name: 'Polygon',   logo: 'https://assets.coingecko.com/coins/images/4713/large/polygon.png' },
+                { name: 'BNB Chain', logo: 'https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png' },
+                { name: 'Optimism',  logo: 'https://assets.coingecko.com/coins/images/25244/large/Optimism.png' },
+                { name: 'Avalanche', logo: 'https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png' },
+                { name: 'Solana',    logo: 'https://assets.coingecko.com/coins/images/4128/large/solana.png' },
+                /* duplicate untuk seamless loop */
+                { name: 'Ethereum',  logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png' },
+                { name: 'Base',      logo: 'https://assets.coingecko.com/coins/images/30494/large/base_icon_transparent_background.png' },
+                { name: 'Arbitrum',  logo: 'https://assets.coingecko.com/coins/images/16547/large/photo_2023-03-29_21.47.00.jpeg' },
+                { name: 'Polygon',   logo: 'https://assets.coingecko.com/coins/images/4713/large/polygon.png' },
+                { name: 'BNB Chain', logo: 'https://assets.coingecko.com/coins/images/825/large/bnb-icon2_2x.png' },
+                { name: 'Optimism',  logo: 'https://assets.coingecko.com/coins/images/25244/large/Optimism.png' },
+                { name: 'Avalanche', logo: 'https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png' },
+                { name: 'Solana',    logo: 'https://assets.coingecko.com/coins/images/4128/large/solana.png' },
+              ].map((c, i) => (
+                <div key={i} className="flex items-center gap-3 px-5 py-3 rounded-2xl border border-[#4a2d1c]/15 bg-[#fff4dc]/80 flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={c.logo} alt={c.name} style={{ height: 48, width: 48, objectFit: 'contain', borderRadius: 8 }} />
+                  <span className="text-base font-semibold text-[#241711] whitespace-nowrap">{c.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+        {/* ── end chain marquee ── */}
+
         <div className="relative mx-auto max-w-7xl">
           <AnimatedSection className="grid gap-10 lg:grid-cols-[0.82fr_1.18fr] lg:items-end">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#445d3b]">Pricing & crypto checkout</p>
-              <h2 className="mt-4 font-display text-4xl font-bold text-[#241711] sm:text-5xl">Pilih paket, bayar pakai crypto.</h2>
+
+              {/* ── Chain support marquee — sudah dipindah ke full-width di atas ── */}
+
+              <h2 className="mt-0 font-display text-4xl font-bold text-[#241711] sm:text-5xl">Pilih paket, bayar pakai crypto.</h2>
               <p className="mt-5 text-lg leading-8 text-[#60412f]">Tanpa kartu kredit. Tanpa ribet KYC. Cukup connect wallet, pilih token, konfirmasi, lalu akses aktif setelah transaksi terverifikasi.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">

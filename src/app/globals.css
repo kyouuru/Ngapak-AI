@@ -224,10 +224,20 @@
 
   .marquee-track {
     animation: marqueeX 34s linear infinite;
+    will-change: transform;
   }
 
   .marquee-track-reverse {
     animation: marqueeXReverse 38s linear infinite;
+    will-change: transform;
+  }
+
+  /* Chain logo marquee */
+  .chain-marquee-track {
+    animation: marqueeX 28s linear infinite;
+    will-change: transform;
+    display: flex;
+    width: max-content;
   }
 
   .marquee-mask {
@@ -241,7 +251,7 @@
     top: 0;
     bottom: 0;
     z-index: 2;
-    width: 12%;
+    width: 8%;
     pointer-events: none;
   }
 
@@ -253,11 +263,6 @@
   .marquee-mask::after {
     right: 0;
     background: linear-gradient(to left, rgba(255, 244, 220, 0.96), transparent);
-  }
-
-  .marquee-row:hover .marquee-track,
-  .marquee-row:hover .marquee-track-reverse {
-    animation-play-state: paused;
   }
 
   .hero-word {
