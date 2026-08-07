@@ -275,16 +275,27 @@ export function CryptoCheckoutModal({ plan, onClose }: { plan: Plan; onClose: ()
             <div className="space-y-3">
               {(['evm', 'solana'] as NetworkType[]).map((n) => (
                 <button key={n} onClick={() => { setNetwork(n); setToken(n === 'evm' ? 'ETH' : 'SOL') }}
-                  className={cn('w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all',
-                    network === n ? 'border-[#b5502e]/40 bg-[#b5502e]/8' : 'border-[#4a2d1c]/15 bg-[#f4e6ca]/50 hover:border-[#b5502e]/30',
+                  className={cn('w-full flex items-center gap-4 p-4 rounded-xl border-2 text-left transition-all',
+                    network === n
+                      ? 'border-[#b5502e] bg-[#b5502e]/12 shadow-[0_0_0_3px_rgba(181,80,46,0.12)]'
+                      : 'border-[#4a2d1c]/20 bg-[#f4e6ca]/50 hover:border-[#b5502e]/50 hover:bg-[#b5502e]/5',
                   )}>
-                  <div className="w-10 h-10 rounded-xl bg-[#b5502e]/10 flex items-center justify-center shrink-0">
-                    <Wallet size={18} className="text-[#b5502e]" />
+                  <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all',
+                    network === n ? 'bg-[#b5502e] shadow-md' : 'bg-[#b5502e]/10',
+                  )}>
+                    <Wallet size={18} className={network === n ? 'text-[#fff4dc]' : 'text-[#b5502e]'} />
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold">{n === 'evm' ? 'EVM (Ethereum + L2s)' : 'Solana'}</p>
+                  <div className="flex-1">
+                    <p className={cn('text-sm font-semibold', network === n ? 'text-[#b5502e]' : 'text-[#241711]')}>
+                      {n === 'evm' ? 'EVM (Ethereum + L2s)' : 'Solana'}
+                    </p>
                     <p className="text-xs text-[#8a6b52] mt-0.5">{n === 'evm' ? 'ETH, Base, Arbitrum, Polygon, BSC, Optimism' : 'SOL dan USDC SPL'}</p>
                   </div>
+                  {network === n && (
+                    <div className="w-5 h-5 rounded-full bg-[#b5502e] flex items-center justify-center shrink-0">
+                      <Check size={11} className="text-[#fff4dc]" />
+                    </div>
+                  )}
                 </button>
               ))}
               <button onClick={() => setStep(2)} className="w-full py-3 rounded-xl bg-[#b5502e] hover:bg-[#8f3e24] text-[#fff4dc] text-sm font-semibold flex items-center justify-center gap-2">
@@ -347,14 +358,25 @@ export function CryptoCheckoutModal({ plan, onClose }: { plan: Plan; onClose: ()
                       const amt = formatCrypto(usdToCrypto(planUSD, prices[sym] ?? 1), opt)
                       return (
                         <button key={opt} onClick={() => setToken(opt)}
-                          className={cn('w-full flex items-center justify-between p-3.5 rounded-xl border transition-all text-left',
-                            token === opt ? 'border-[#b5502e]/40 bg-[#b5502e]/8' : 'border-[#4a2d1c]/15 bg-[#f4e6ca]/50 hover:border-[#b5502e]/25',
+                          className={cn('w-full flex items-center justify-between p-3.5 rounded-xl border-2 transition-all text-left',
+                            token === opt
+                              ? 'border-[#b5502e] bg-[#b5502e]/12 shadow-[0_0_0_3px_rgba(181,80,46,0.12)]'
+                              : 'border-[#4a2d1c]/20 bg-[#f4e6ca]/50 hover:border-[#b5502e]/50',
                           )}>
                           <div>
-                            <p className="text-sm font-medium">{opt === 'SOL_USDC' ? 'USDC (SPL)' : opt}</p>
+                            <p className={cn('text-sm font-semibold', token === opt ? 'text-[#b5502e]' : 'text-[#241711]')}>
+                              {opt === 'SOL_USDC' ? 'USDC (SPL)' : opt}
+                            </p>
                             <p className="text-xs text-[#8a6b52] mt-0.5">Estimasi gas ditampilkan di wallet</p>
                           </div>
-                          <p className="text-sm font-mono text-[#b5502e]">{amt}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-mono font-bold text-[#b5502e]">{amt}</p>
+                            {token === opt && (
+                              <div className="w-5 h-5 rounded-full bg-[#b5502e] flex items-center justify-center shrink-0">
+                                <Check size={11} className="text-[#fff4dc]" />
+                              </div>
+                            )}
+                          </div>
                         </button>
                       )
                     })}
