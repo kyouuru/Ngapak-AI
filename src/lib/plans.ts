@@ -43,11 +43,11 @@ export const PLANS: Plan[] = [
   {
     id: 'mini',
     name: 'Mini',
-    price: 49000,
-    priceLabel: 'Rp 49.000/bulan',
+    price: 3.99,
+    priceLabel: '$3.99/bulan',
     description: 'Untuk pengguna aktif sehari-hari',
     badge: 'Populer',
-    badgeColor: 'text-violet-400 bg-violet-400/10 border-violet-400/20',
+    badgeColor: 'text-white bg-[#b5502e] border-[#b5502e]',
     features: [
       '50 chat per hari',
       'Semua model AI (AgentRouter, OpenRouter, NVIDIA)',
@@ -67,11 +67,11 @@ export const PLANS: Plan[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 99000,
-    priceLabel: 'Rp 99.000/bulan',
+    price: 7.99,
+    priceLabel: '$7.99/bulan',
     description: 'Untuk profesional dan developer',
     badge: 'Terbaik',
-    badgeColor: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+    badgeColor: 'text-white bg-[#445d3b] border-[#445d3b]',
     features: [
       '200 chat per hari',
       'Semua model AI premium',
@@ -97,7 +97,7 @@ export function getPlanById(id: PlanId): Plan {
 }
 
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(price)
+  return `$${price.toFixed(2)}`
 }
 
 // Model yang butuh plan berbayar (kosong — semua AgentRouter models sudah free via key sendiri)

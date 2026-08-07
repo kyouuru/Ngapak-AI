@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useSession, signIn } from 'next-auth/react'
-import { Check, Sparkles, ArrowLeft, Zap, Crown, Star, LogIn, Wallet } from 'lucide-react'
+import { Check, X, Minus, Sparkles, ArrowLeft, Zap, Crown, Star, LogIn, Wallet } from 'lucide-react'
 import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { PLANS, formatPrice, type Plan } from '@/lib/plans'
@@ -14,6 +14,25 @@ const CryptoCheckoutModal = dynamic(
 )
 
 const PLAN_ICONS = { free: Zap, mini: Star, pro: Crown }
+
+function CellVal({ v }: { v: string }) {
+  if (v === '✅') return (
+    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#445d3b]/15 text-[#445d3b]">
+      <Check size={13} strokeWidth={2.5} />
+    </span>
+  )
+  if (v === '❌') return (
+    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-red-500/10 text-red-400">
+      <X size={13} strokeWidth={2.5} />
+    </span>
+  )
+  if (v === '—') return (
+    <span className="inline-flex items-center justify-center w-6 h-6 text-[#a09880]">
+      <Minus size={13} />
+    </span>
+  )
+  return <span className="text-sm font-semibold text-[#241711]">{v}</span>
+}
 
 export function UpgradePage() {
   const { data: session } = useSession()
@@ -179,7 +198,11 @@ export function UpgradePage() {
                 ].map((row) => (
                   <tr key={row.label} className="border-b border-[#4a2d1c]/15 last:border-0">
                     <td className="px-6 py-3 text-[#60412f]">{row.label}</td>
-                    {row.values.map((v, i) => <td key={i} className="px-6 py-3 text-center text-[#241711]">{v}</td>)}
+                    {row.values.map((v, i) => (
+                      <td key={i} className="px-6 py-3">
+                        <div className="flex justify-center"><CellVal v={v} /></div>
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
