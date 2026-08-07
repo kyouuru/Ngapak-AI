@@ -257,6 +257,7 @@ function BatikMarqueeBackground() {
                 backgroundPosition: '0 center',
                 animation: `batikRow${goRight ? 'Right' : 'Left'} ${28 + i * 4}s linear infinite`,
                 willChange: 'background-position',
+                ['--tile-w' as string]: `${tileW}px`,
               }}
             />
           </div>
@@ -909,16 +910,17 @@ export function LandingPage() {
         <SectionBlobs color="#445d3b" color2="#b5502e" count={2} />
 
         {/* ── Chain marquee FULL WIDTH — di atas grid ── */}
+        {/* ── Chain marquee FULL WIDTH ── */}
         <div className="relative mb-12">
           <p className="text-center text-xs font-semibold uppercase tracking-[0.22em] text-[#8a6b52] mb-4">Jaringan yang didukung</p>
-          <div
-            className="overflow-hidden"
+          <div className="overflow-hidden w-full"
             style={{
-              maskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent, black 8%, black 92%, transparent)',
+              maskImage: 'linear-gradient(to right, transparent, black 6%, black 94%, transparent)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent, black 6%, black 94%, transparent)',
             }}
           >
-            <div className="chain-marquee-track flex items-center" style={{ gap: 12 }}>
+            {/* Wrapper tambahan untuk seamless: lebar track = 2× content, translateX(-50%) = loop sempurna */}
+            <div className="chain-marquee-track items-center" style={{ gap: 12 }}>
               {[
                 { name: 'Ethereum',  logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png' },
                 { name: 'Base',      logo: 'https://assets.coingecko.com/coins/images/30494/large/base_icon_transparent_background.png' },
@@ -928,7 +930,7 @@ export function LandingPage() {
                 { name: 'Optimism',  logo: 'https://assets.coingecko.com/coins/images/25244/large/Optimism.png' },
                 { name: 'Avalanche', logo: 'https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png' },
                 { name: 'Solana',    logo: 'https://assets.coingecko.com/coins/images/4128/large/solana.png' },
-                /* duplicate untuk seamless loop */
+                /* set kedua — identik, wajib untuk translateX(-50%) loop seamless */
                 { name: 'Ethereum',  logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png' },
                 { name: 'Base',      logo: 'https://assets.coingecko.com/coins/images/30494/large/base_icon_transparent_background.png' },
                 { name: 'Arbitrum',  logo: 'https://assets.coingecko.com/coins/images/16547/large/photo_2023-03-29_21.47.00.jpeg' },

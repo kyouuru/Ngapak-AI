@@ -232,12 +232,14 @@
     will-change: transform;
   }
 
-  /* Chain logo marquee */
+  /* Chain logo marquee — seamless loop ke kiri */
   .chain-marquee-track {
     animation: marqueeX 28s linear infinite;
     will-change: transform;
-    display: flex;
-    width: max-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    /* width auto dari inline-flex — translateX(-50%) = loop seamless */
   }
 
   .marquee-mask {
@@ -441,12 +443,12 @@
 
 @keyframes batikRowRight {
   from { background-position: 0 center; }
-  to   { background-position: 200px center; }
+  to   { background-position: var(--tile-w, 160px) center; }
 }
 
 @keyframes batikRowLeft {
   from { background-position: 0 center; }
-  to   { background-position: -200px center; }
+  to   { background-position: calc(-1 * var(--tile-w, 160px)) center; }
 }
 
 @keyframes chainMarquee {
