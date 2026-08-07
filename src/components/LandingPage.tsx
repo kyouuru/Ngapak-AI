@@ -1129,11 +1129,11 @@ export function LandingPage() {
 
       <footer className="relative z-10 border-t border-[#4a2d1c]/10 bg-[#d9c9a8] px-4 py-10 sm:px-6">
         <div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center" style={{ gap: 0 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="Ngapak AI logo" style={{ height: 72, width: 'auto' }} />
-            <div>
-              <p className="font-semibold text-[#241711]">Ngapak AI</p>
+            <div style={{ marginLeft: -36 }}>
+              <p className="font-bold text-base uppercase"><span style={{ color: '#b5502e' }}>NGAPAK</span><span style={{ color: '#241711' }}> AI</span></p>
               <p className="text-xs text-[#8a6b52]">Asisten AI Indonesia dengan crypto checkout.</p>
             </div>
           </div>
