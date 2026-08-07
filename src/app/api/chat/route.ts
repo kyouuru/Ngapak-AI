@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth'
 import { checkLimit, incrementUsage } from '@/lib/rateLimit'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60  // Vercel max function duration (seconds) — needed for NVIDIA/slow providers
 
 /* ─── Provider base URLs ─────────────────────────────────── */
 const AGENTROUTER_BASE = 'https://agentrouter.org/v1'
@@ -143,7 +144,7 @@ async function callProvider(
   if (provider === 'agentrouter') {
     const flatMsgsAR = flattenMessages(messages)
     const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), 25_000)
+    const timer = setTimeout(() => controller.abort(), 28_000)
     try {
       return await fetch(`${AGENTROUTER_BASE}/messages`, {
         method: 'POST',
@@ -165,7 +166,8 @@ async function callProvider(
   // All providers use OpenAI-compatible /chat/completions format
   const body = flatMsgs
   const isDeepSeekFlash = provider === 'nvidia' && modelId === 'deepseek-ai/deepseek-v4-flash-0731'
-  const timeoutMs = provider === 'nvidia' ? 60_000 : 25_000
+  // OpenRouter free models can be slow — give them enough time
+  const timeoutMs = provider === 'nvidia' ? 55_000 : provider === 'openrouter' ? 45_000 : 28_000
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
 
@@ -310,21 +312,33 @@ function forwardSSEStream(upstream: Response, provider: Provider): ReadableStrea
             try {
               const parsed = JSON.parse(dataStr)
               let text: string | undefined
+
               // Anthropic SSE (AgentRouter): content_block_delta
               if (parsed?.type === 'content_block_delta') {
                 text = parsed?.delta?.text
               } else if (parsed?.type === 'message_stop') {
                 controller.enqueue(encoder.encode('data: [DONE]\n\n'))
                 return
+              } else if (parsed?.type === 'content_block_start') {
+                // Skip — no text yet
+                continue
+              } else if (parsed?.type === 'message_start' || parsed?.type === 'message_delta' || parsed?.type === 'ping') {
+                // Skip metadata events
+                continue
               } else {
                 // OpenAI SSE (OpenRouter, NVIDIA)
-                text = parsed?.choices?.[0]?.delta?.content
+                const delta = parsed?.choices?.[0]?.delta
+                // content can be null on first/last chunk — skip
+                text = delta?.content ?? delta?.reasoning_content ?? undefined
+                if (text === null || text === undefined) continue
               }
+
               if (typeof text === 'string' && text.length > 0) {
                 chunkCount++
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
               }
             } catch {
+              // unparseable line — skip silently
             }
           }
         }
@@ -335,9 +349,13 @@ function forwardSSEStream(upstream: Response, provider: Provider): ReadableStrea
           if (dataStr && dataStr !== '[DONE]') {
             try {
               const parsed = JSON.parse(dataStr)
-              const text = provider === 'agentrouter'
-                ? parsed?.delta?.text
-                : parsed?.choices?.[0]?.delta?.content
+              let text: string | undefined
+              if (provider === 'agentrouter') {
+                text = parsed?.delta?.text
+              } else {
+                const delta = parsed?.choices?.[0]?.delta
+                text = delta?.content ?? delta?.reasoning_content ?? undefined
+              }
               if (typeof text === 'string' && text.length > 0)
                 controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`))
             } catch {}
@@ -347,7 +365,8 @@ function forwardSSEStream(upstream: Response, provider: Provider): ReadableStrea
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
       } catch (err) {
         console.error(`[chat] stream error (${provider}):`, err)
-        controller.error(err)
+        // Don't error — just close with DONE so client gets partial content
+        try { controller.enqueue(encoder.encode('data: [DONE]\n\n')) } catch {}
       } finally {
         controller.close()
       }
