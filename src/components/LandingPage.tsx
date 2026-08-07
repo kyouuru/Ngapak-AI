@@ -919,8 +919,8 @@ export function LandingPage() {
               WebkitMaskImage: 'linear-gradient(to right, transparent, black 6%, black 94%, transparent)',
             }}
           >
-            {/* Wrapper tambahan untuk seamless: lebar track = 2× content, translateX(-50%) = loop sempurna */}
-            <div className="chain-marquee-track items-center" style={{ gap: 12 }}>
+            {/* track — display flex, width max-content, animasi chainMarquee via CSS */}
+            <div className="chain-marquee-track">
               {[
                 { name: 'Ethereum',  logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png' },
                 { name: 'Base',      logo: 'https://assets.coingecko.com/coins/images/30494/large/base_icon_transparent_background.png' },

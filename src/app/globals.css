@@ -232,14 +232,17 @@
     will-change: transform;
   }
 
-  /* Chain logo marquee — seamless loop ke kiri */
+  /* Chain logo marquee — seamless infinite loop ke kiri */
   .chain-marquee-track {
-    animation: marqueeX 28s linear infinite;
-    will-change: transform;
-    display: inline-flex;
+    display: flex;
+    flex-wrap: nowrap;
+    width: max-content;
+    min-width: max-content;
     align-items: center;
     gap: 12px;
-    /* width auto dari inline-flex — translateX(-50%) = loop seamless */
+    flex-shrink: 0;
+    animation: chainMarquee 30s linear infinite;
+    will-change: transform;
   }
 
   .marquee-mask {
@@ -452,8 +455,15 @@
 }
 
 @keyframes chainMarquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chain-marquee-track {
+    animation: none;
+    transform: none;
+  }
 }
 
 @keyframes waveDrift1 {
