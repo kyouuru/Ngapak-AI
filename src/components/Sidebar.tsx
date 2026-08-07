@@ -254,7 +254,7 @@ export function Sidebar({
               )}
             </div>
             <LimitBadge used={limitUsed} limit={limitMax} isLoggedIn={isLoggedIn} />
-            <AuthButton user={user} logoutLabel={t.logout} />
+            <AuthButton user={user} logoutLabel={t.logout} limitUsed={limitUsed} limitMax={limitMax} userPlan={userPlan} />
           </div>
 
           {/* Collapsed footer */}
@@ -267,7 +267,7 @@ export function Sidebar({
             )}
           >
             <LimitBadge used={limitUsed} limit={limitMax} isLoggedIn={isLoggedIn} compact />
-            <AuthButton user={user} compact />
+            <AuthButton user={user} compact limitUsed={limitUsed} limitMax={limitMax} userPlan={userPlan} />
           </div>
         </div>
       </aside>
