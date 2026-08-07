@@ -304,6 +304,16 @@ export function ChatPage() {
   const abortRef = useRef<AbortController | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
+  // ── Abort streaming on unmount (close tab / navigate away) ──
+  useEffect(() => {
+    return () => {
+      if (abortRef.current) {
+        abortRef.current.abort()
+        abortRef.current = null
+      }
+    }
+  }, [])
+
   const activeSession = sessions.find((s) => s.id === activeSessionId) ?? null
   const isLimitReached = limitUsed >= limitMax
   const t = getT(langId)
@@ -352,6 +362,12 @@ export function ChatPage() {
     setActiveSessionId(s.id)
     setSidebarOpen(false)
   }, [t.newChat])
+
+  // ── Auto new chat on mount — selalu mulai fresh saat masuk /chat ──
+  useEffect(() => {
+    createNewSession()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const deleteSession = useCallback((id: string) => {
     setSessions((prev) => prev.filter((s) => s.id !== id))
