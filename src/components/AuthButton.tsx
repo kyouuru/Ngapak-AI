@@ -2,6 +2,7 @@
 
 import { signIn, signOut } from 'next-auth/react'
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import {
   LogOut, Settings, Zap,
   ChevronUp, Unlink, Crown, BarChart2,
@@ -39,16 +40,19 @@ function AccountSettingsModal({ user, onClose }: { user: AuthButtonProps['user']
   const { disconnect } = useDisconnect()
   const [displayName, setDisplayName] = useState(user?.name ?? '')
   const [saved, setSaved] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
 
   const handleSave = () => {
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
 
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+  const content = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
       <div className="absolute inset-0 bg-[#241711]/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="paper-grain relative w-full max-w-md rounded-2xl bg-[#fff4dc] border border-[#4a2d1c]/15 shadow-[10px_10px_0_rgba(36,23,17,0.15)] overflow-hidden text-[#241711]">
+      <div className="paper-grain relative w-full max-w-md rounded-2xl bg-[#fff4dc] border border-[#4a2d1c]/15 shadow-[10px_10px_0_rgba(36,23,17,0.15)] overflow-hidden text-[#241711]" style={{ zIndex: 10000 }}>
         <div className="h-1 bg-gradient-to-r from-[#b5502e] via-[#9b6a2f] to-[#445d3b]" />
         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-[#4a2d1c]/12">
           <div className="flex items-center gap-2">
@@ -137,6 +141,9 @@ function AccountSettingsModal({ user, onClose }: { user: AuthButtonProps['user']
       </div>
     </div>
   )
+
+  if (!mounted) return null
+  return createPortal(content, document.body)
 }
 
 export function AuthButton({
