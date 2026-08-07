@@ -26,44 +26,44 @@ export const MODEL_MAP: Record<string, ModelConfig> = {
   // ── DEFAULT: AgentRouter claude-opus-4-8 (prioritas utama) ──
   'agentrouter/claude-opus-4-8': {
     agentrouter: 'claude-opus-4-8',
+    nvidia:      'mistralai/mistral-small-4-119b-2603',
     openrouter:  'deepseek/deepseek-chat-v3-0324:free',
-    nvidia:      'meta/llama-3.3-70b-instruct',
     primary:     'agentrouter',
   },
   // ── AgentRouter claude-opus-5 ──
   'agentrouter/claude-opus-5': {
     agentrouter: 'claude-opus-5',
+    nvidia:      'mistralai/mistral-small-4-119b-2603',
     openrouter:  'deepseek/deepseek-chat-v3-0324:free',
-    nvidia:      'meta/llama-3.3-70b-instruct',
     primary:     'agentrouter',
   },
   // ── AgentRouter gpt-5.6-sol ──
   'agentrouter/gpt-5.6-sol': {
     agentrouter: 'gpt-5.6-sol',
+    nvidia:      'mistralai/mistral-small-4-119b-2603',
     openrouter:  'deepseek/deepseek-chat-v3-0324:free',
-    nvidia:      'meta/llama-3.3-70b-instruct',
     primary:     'agentrouter',
   },
   // ── Gemini Flash (OpenRouter) ──
   'google/gemini-2.0-flash-001': {
     openrouter:  'google/gemini-2.0-flash-001',
     agentrouter: 'claude-opus-4-8',
-    nvidia:      'meta/llama-3.3-70b-instruct',
+    nvidia:      'mistralai/mistral-small-4-119b-2603',
     primary:     'openrouter',
   },
-  // ── Llama (NVIDIA primary) ──
+  // ── Llama via NVIDIA ──
   'meta-llama/llama-3.3-70b-instruct': {
-    nvidia:      'meta/llama-3.3-70b-instruct',
-    openrouter:  'meta-llama/llama-3.3-70b-instruct',
+    nvidia:      'meta/llama-3.1-70b-instruct',
     agentrouter: 'claude-opus-4-8',
+    openrouter:  'meta-llama/llama-3.1-70b-instruct:free',
     primary:     'nvidia',
   },
-  // ── DeepSeek (OpenRouter — NVIDIA model EOL) ──
+  // ── Mistral via NVIDIA ──
   'nvidia/deepseek-v4-pro': {
-    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
+    nvidia:      'mistralai/mistral-small-4-119b-2603',
     agentrouter: 'claude-opus-4-8',
-    nvidia:      'meta/llama-3.3-70b-instruct',
-    primary:     'openrouter',
+    openrouter:  'deepseek/deepseek-chat-v3-0324:free',
+    primary:     'nvidia',
   },
 }
 
@@ -180,8 +180,8 @@ function buildAttempts(config: ModelConfig, keys: Keys) {
   // Primary first
   maybe(config.primary, config[config.primary])
 
-  // Then the other two in a fixed fallback order: agentrouter → openrouter → nvidia
-  const fallbackOrder: Provider[] = ['agentrouter', 'openrouter', 'nvidia']
+  // Fallback order: nvidia first (active), then openrouter, then agentrouter
+  const fallbackOrder: Provider[] = ['nvidia', 'agentrouter', 'openrouter']
   for (const p of fallbackOrder) {
     if (p !== config.primary) maybe(p, config[p])
   }
