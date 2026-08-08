@@ -118,7 +118,7 @@ function NewChatInputBox({
 
   const handleSubmit = () => {
     const trimmed = input.trim()
-    if ((!trimmed && !attachment) || isLoading || disabled || isProcessing) return
+    if ((!trimmed && !attachment) || disabled || isProcessing) return
     onSend(trimmed, attachment ?? undefined)
     setInput('')
     setAttachment(null)
@@ -152,7 +152,7 @@ function NewChatInputBox({
   }
 
   const canSend = (input.trim().length > 0 || (!!attachment && attachment.kind !== 'error')) &&
-    !isLoading && !disabled && !isProcessing
+    !disabled && !isProcessing
 
   return (
     <div className="w-full">
@@ -251,10 +251,10 @@ function NewChatInputBox({
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-[10px] text-[#a09880] hidden sm:block">{isLoading ? '' : inputHint}</span>
+            <span className="text-[10px] text-[#a09880] hidden sm:block">{isLoading ? 'Kirim baru = stop & ulang' : inputHint}</span>
             <button
-              onClick={isLoading ? () => {} : handleSubmit}
-              disabled={!isLoading && !canSend}
+              onClick={handleSubmit}
+              disabled={!canSend}
               className={cn(
                 'w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150',
                 isLoading
@@ -385,8 +385,16 @@ export function ChatPage() {
   }, [])
 
   const sendMessage = useCallback(async (content: string, attachment?: ProcessedAttachment) => {
-    if (isLoading) return
+    // Allow sending new message even while loading — it will abort the current stream
     if (isLimitReached) { setShowLimitModal(true); return }
+
+    // Abort any in-flight request before starting a new one
+    if (abortRef.current) {
+      abortRef.current.abort()
+      abortRef.current = null
+    }
+    setIsLoading(false)
+    setStreamingContent('')
 
     let sessionId = activeSessionId
     if (!sessionId) {
@@ -453,22 +461,41 @@ export function ChatPage() {
       const reader = res.body?.getReader()
       const decoder = new TextDecoder()
       let fullText = ''
+
+      // Client-side timeout — auto-abort if no data for 50s
+      let streamTimeout: ReturnType<typeof setTimeout> | null = null
+      const resetTimeout = () => {
+        if (streamTimeout) clearTimeout(streamTimeout)
+        streamTimeout = setTimeout(() => {
+          reader?.cancel()
+        }, 50_000)
+      }
+
       if (reader) {
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          for (const line of decoder.decode(value).split('\n')) {
-            if (!line.startsWith('data: ')) continue
-            const d = line.slice(6).trim()
-            if (d === '[DONE]') break
-            try { const p = JSON.parse(d) as { text: string }; fullText += p.text; setStreamingContent(fullText) } catch {}
+        resetTimeout()
+        try {
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            resetTimeout()
+            for (const line of decoder.decode(value).split('\n')) {
+              if (!line.startsWith('data: ')) continue
+              const d = line.slice(6).trim()
+              if (d === '[DONE]') { reader.cancel(); break }
+              try { const p = JSON.parse(d) as { text: string }; fullText += p.text; setStreamingContent(fullText) } catch {}
+            }
           }
+        } finally {
+          if (streamTimeout) clearTimeout(streamTimeout)
         }
       }
 
-      const assistantMsg: Message = { id: generateId(), role: 'assistant', content: fullText, createdAt: new Date(), skillId }
-      setSessions((prev) => prev.map((s) => s.id === sessionId
-        ? { ...s, messages: [...s.messages, assistantMsg], updatedAt: new Date() } : s))
+      // Save whatever we got — even partial content is better than nothing
+      if (fullText.trim().length > 0) {
+        const assistantMsg: Message = { id: generateId(), role: 'assistant', content: fullText, createdAt: new Date(), skillId }
+        setSessions((prev) => prev.map((s) => s.id === sessionId
+          ? { ...s, messages: [...s.messages, assistantMsg], updatedAt: new Date() } : s))
+      }
     } catch (err) {
       if ((err as Error).name !== 'AbortError') {
         setSessions((prev) => prev.map((s) => s.id === sessionId

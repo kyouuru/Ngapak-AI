@@ -55,7 +55,7 @@ export function ChatInput({
 
   const handleSubmit = () => {
     const trimmed = input.trim()
-    if ((!trimmed && !attachment) || isLoading || disabled || isProcessing) return
+    if ((!trimmed && !attachment) || disabled || isProcessing) return
     onSend(trimmed, attachment ?? undefined)
     setInput('')
     setAttachment(null)
@@ -103,7 +103,7 @@ export function ChatInput({
     e.target.value = ''
   }
 
-  const canSend = (input.trim().length > 0 || (!!attachment && attachment.kind !== 'error')) && !isLoading && !disabled && !isProcessing
+  const canSend = (input.trim().length > 0 || (!!attachment && attachment.kind !== 'error')) && !disabled && !isProcessing
 
   return (
     <div className="px-4 pb-4 pt-2">
