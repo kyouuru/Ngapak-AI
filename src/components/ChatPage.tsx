@@ -343,14 +343,22 @@ export function ChatPage() {
       const saved = localStorage.getItem('ngapak-sessions-v3')
       if (saved) {
         const parsed = JSON.parse(saved) as ChatSession[]
-        setSessions(parsed)
-        if (parsed.length > 0) setActiveSessionId(parsed[0].id)
+        // Filter out empty sessions (no messages) — they're leftover from previous mounts
+        const withMessages = parsed.filter((s) => s.messages.length > 0)
+        setSessions(withMessages)
+        // Don't auto-select any session — user starts fresh each visit
       }
     } catch {}
   }, [])
 
   useEffect(() => {
-    if (sessions.length > 0) localStorage.setItem('ngapak-sessions-v3', JSON.stringify(sessions))
+    // Only persist sessions that have at least one message
+    const withMessages = sessions.filter((s) => s.messages.length > 0)
+    if (withMessages.length > 0) {
+      localStorage.setItem('ngapak-sessions-v3', JSON.stringify(withMessages))
+    } else {
+      localStorage.removeItem('ngapak-sessions-v3')
+    }
   }, [sessions])
 
   const createNewSession = useCallback(() => {
@@ -363,9 +371,14 @@ export function ChatPage() {
     setSidebarOpen(false)
   }, [t.newChat])
 
-  // ── Auto new chat on mount — selalu mulai fresh saat masuk /chat ──
+  // ── Auto new chat on mount — start fresh, sidebar shows history ──
   useEffect(() => {
-    createNewSession()
+    const s: ChatSession = {
+      id: generateId(), title: t.newChat, messages: [],
+      createdAt: new Date(), updatedAt: new Date(), userMessageCount: 0,
+    }
+    setSessions((prev) => [s, ...prev])
+    setActiveSessionId(s.id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

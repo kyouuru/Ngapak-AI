@@ -68,7 +68,7 @@ export function Sidebar({
   const { today, yesterday, week, older } = groupSessions(sessions)
 
   const GroupLabel = ({ label }: { label: string }) => (
-    <p className="text-[10px] font-medium text-[#4a4538] uppercase tracking-wider px-2 pt-3 pb-1">
+    <p className="text-[11px] font-semibold text-[#5a4535] uppercase tracking-wider px-2 pt-4 pb-1.5">
       {label}
     </p>
   )
@@ -80,27 +80,30 @@ export function Sidebar({
         onClick={(e) => { e.stopPropagation(); onSelectSession(session.id) }}
         className={cn(
           'group flex items-center rounded-xl cursor-pointer transition-all duration-150',
-          collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2',
+          collapsed ? 'justify-center p-2.5' : 'gap-2.5 px-3 py-2.5',
           isActive
-            ? 'bg-[#d97757]/10 border border-[#d97757]/20'
-            : 'hover:bg-white/[0.04] border border-transparent',
+            ? 'bg-[#d97757]/12 border border-[#d97757]/25'
+            : 'hover:bg-white/[0.06] border border-transparent',
         )}
         title={collapsed ? session.title : undefined}
       >
         <MessageSquare
-          size={13}
-          className={cn('flex-shrink-0 transition-colors', isActive ? 'text-[#d97757]' : 'text-[#4a4538]')}
+          size={14}
+          className={cn('flex-shrink-0 transition-colors', isActive ? 'text-[#d97757]' : 'text-[#5a4535]')}
         />
         {!collapsed && (
           <>
-            <span className={cn('flex-1 text-xs truncate', isActive ? 'text-[#b5502e]' : 'text-[#3d2b1f]')}>
+            <span className={cn(
+              'flex-1 text-[13px] truncate font-medium',
+              isActive ? 'text-[#b5502e] font-semibold' : 'text-[#2a1c12]',
+            )}>
               {session.title}
             </span>
             <button
               onClick={(e) => { e.stopPropagation(); onDeleteSession(session.id) }}
-              className="opacity-0 group-hover:opacity-100 text-[#4a4538] hover:text-red-400 transition-all p-0.5 rounded flex-shrink-0"
+              className="opacity-0 group-hover:opacity-100 text-[#5a4535] hover:text-red-400 transition-all p-0.5 rounded flex-shrink-0"
             >
-              <Trash2 size={11} />
+              <Trash2 size={12} />
             </button>
           </>
         )}
@@ -187,9 +190,9 @@ export function Sidebar({
           <button
             onClick={(e) => { e.stopPropagation(); onNewChat() }}
             className={cn(
-              'flex items-center rounded-xl text-sm font-medium transition-all duration-150 group',
-              'bg-[#b5502e]/10 hover:bg-[#b5502e]/18 text-[#b5502e] border border-[#b5502e]/20 hover:border-[#b5502e]/35',
-              collapsed ? 'w-full justify-center p-2.5' : 'w-full gap-2.5 px-3 py-2.5',
+              'flex items-center rounded-xl font-semibold transition-all duration-150 group',
+              'bg-[#b5502e]/12 hover:bg-[#b5502e]/20 text-[#b5502e] border border-[#b5502e]/25 hover:border-[#b5502e]/40',
+              collapsed ? 'w-full justify-center p-2.5 text-sm' : 'w-full gap-2.5 px-3 py-2.5 text-[13px]',
             )}
             title={collapsed ? t.newChat : undefined}
           >
